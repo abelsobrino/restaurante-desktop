@@ -1,0 +1,62 @@
+/* Estilos generales */
+.root {
+    -fx-font-family: "Arial";
+}
+
+/* Botones por rol */
+.btn-mozo {
+    -fx-background-color: #4CAF50;
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-padding: 15px 40px;
+    -fx-background-radius: 8px;
+}
+
+.btn-mozo:hover {
+    -fx-background-color: #388E3C;
+}
+
+.btn-caja {
+    -fx-background-color: #FF9800;
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-padding: 15px 40px;
+    -fx-background-radius: 8px;
+}
+
+.btn-caja:hover {
+    -fx-background-color: #F57C00;
+}
+
+.btn-admin {
+    -fx-background-color: #2196F3;
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-padding: 15px 40px;
+    -fx-background-radius: 8px;
+}
+
+.btn-admin:hover {
+    -fx-background-color: #1976D2;
+}
+
+/* Panel principal */
+.panel-principal {
+    -fx-background-color: #f5f5f5;
+    -fx-alignment: center;
+    -fx-padding: 50px;
+}
+
+.titulo {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1a237e;
+}
+
+.subtitulo {
+    -fx-font-size: 16px;
+    -fx-text-fill: #666;
+}
