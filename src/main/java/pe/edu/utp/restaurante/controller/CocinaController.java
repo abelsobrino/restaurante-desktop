@@ -131,11 +131,6 @@ public class CocinaController {
 
         // Cargar pedidos
         cargarPedidos();
-        Stage stage = (Stage) lstPedidos.getScene().getWindow();
-        if (stage != null) {
-            stage.setMinWidth(800);
-            stage.setMinHeight(600);
-        }
     }
 
     private void cargarPedidos() {
