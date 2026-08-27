@@ -13,7 +13,6 @@ import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 import pe.edu.utp.restaurante.config.ApplicationContextProvider;
 import pe.edu.utp.restaurante.model.Mesa;
 import pe.edu.utp.restaurante.model.Pedido;
@@ -24,6 +23,7 @@ import pe.edu.utp.restaurante.repository.MesaRepository;
 import pe.edu.utp.restaurante.repository.PedidoDetalleRepository;
 import pe.edu.utp.restaurante.repository.PedidoRepository;
 import pe.edu.utp.restaurante.repository.PlatoRepository;
+import pe.edu.utp.restaurante.service.PedidoService;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -45,6 +45,9 @@ public class MozoController {
 
     @Autowired
     private PedidoDetalleRepository pedidoDetalleRepository;
+
+    @Autowired
+    private PedidoService pedidoService;
 
     private Usuario usuarioActual;
     private Mesa mesaSeleccionada;
@@ -318,7 +321,6 @@ public class MozoController {
         }
     }
 
-    @Transactional
     @FXML
     protected void enviarCocina() {
         if (pedidoActual.isEmpty()) {
@@ -352,14 +354,11 @@ public class MozoController {
             pedidoActualEnBD.setSubtotal(subtotal);
             pedidoActualEnBD.setTotal(subtotal);
 
-            pedidoActualEnBD = pedidoRepository.save(pedidoActualEnBD);
-
-            pedidoDetalleRepository.deleteByPedidoId(pedidoActualEnBD.getId());
             for (PedidoDetalle detalle : pedidoActual) {
-                detalle.setPedidoId(pedidoActualEnBD.getId());
                 detalle.setCreatedAt(LocalDateTime.now());
-                pedidoDetalleRepository.save(detalle);
             }
+
+            pedidoActualEnBD = pedidoService.guardarPedidoConDetalles(pedidoActualEnBD, pedidoActual);
 
             mostrarAlerta("Exito", "Pedido enviado a cocina", Alert.AlertType.INFORMATION);
 
@@ -369,7 +368,6 @@ public class MozoController {
         }
     }
 
-    @Transactional
     @FXML
     protected void terminarPedido() {
         if (pedidoActual.isEmpty()) {
@@ -411,14 +409,11 @@ public class MozoController {
                     pedidoActualEnBD.setSubtotal(subtotal);
                     pedidoActualEnBD.setTotal(subtotal);
 
-                    pedidoActualEnBD = pedidoRepository.save(pedidoActualEnBD);
-
-                    pedidoDetalleRepository.deleteByPedidoId(pedidoActualEnBD.getId());
                     for (PedidoDetalle detalle : pedidoActual) {
-                        detalle.setPedidoId(pedidoActualEnBD.getId());
                         detalle.setCreatedAt(LocalDateTime.now());
-                        pedidoDetalleRepository.save(detalle);
                     }
+
+                    pedidoActualEnBD = pedidoService.guardarPedidoConDetalles(pedidoActualEnBD, pedidoActual);
 
                     mesaSeleccionada.setEstado("DISPONIBLE");
                     mesaRepository.save(mesaSeleccionada);
