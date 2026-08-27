@@ -47,7 +47,7 @@
                     <Label style="-fx-font-weight: bold;" text="Subtotal:"/>
                     <Label fx:id="lblSubtotal" style="-fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: #1a237e;" text="S/ 0.00"/>
                 </HBox>
-                <TextArea fx:id="txtObservacion" promptText="Observación del pedido (ej: sin cebolla, bien cocido)" prefHeight="50.0" wrapText="true"/>
+                <TextArea fx:id="txtObservacion" promptText="Observacion del pedido (ej: sin cebolla, bien cocido)" prefHeight="50.0" wrapText="true"/>
                 <HBox spacing="10" alignment="CENTER">
                     <Button fx:id="btnEnviarCocina" onAction="#enviarCocina" style="-fx-background-color: #2e7d32; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10px 20px;" text="ENVIAR A COCINA"/>
                     <Button fx:id="btnTerminarPedido" onAction="#terminarPedido" style="-fx-background-color: #e65100; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10px 20px;" text="TERMINAR PEDIDO"/>

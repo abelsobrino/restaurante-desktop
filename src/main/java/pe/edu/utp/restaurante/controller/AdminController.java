@@ -94,10 +94,6 @@ public class AdminController {
     @FXML
     private BarChart<String, Number> chartVentas;
     @FXML
-    private CategoryAxis xAxis;
-    @FXML
-    private NumberAxis yAxis;
-    @FXML
     private ComboBox<String> cmbFiltroPeriodo;
     @FXML
     private Button btnRegresar;
@@ -106,7 +102,7 @@ public class AdminController {
     public void initialize() {
         System.out.println("[ADMIN] Inicializando controlador...");
 
-        // Configurar roles
+        // Configurar ComboBoxes
         if (cmbRol != null) {
             cmbRol.setItems(FXCollections.observableArrayList("ADMIN", "CAJERO", "MOZO", "COCINERO"));
         }
@@ -118,8 +114,6 @@ public class AdminController {
                     "Entradas", "Platos Principales", "Bebidas", "Postres", "Carnes", "Pescados"
             ));
         }
-
-        // Configurar filtros de período
         if (cmbFiltroPeriodo != null) {
             cmbFiltroPeriodo.setItems(FXCollections.observableArrayList("Hoy", "Esta Semana", "Este Mes"));
             cmbFiltroPeriodo.setValue("Hoy");
@@ -150,7 +144,6 @@ public class AdminController {
                 }
             });
         }
-
         if (tblMesas != null) {
             tblMesas.getSelectionModel().selectedItemProperty().addListener((obs, old, newVal) -> {
                 if (newVal != null) {
@@ -160,7 +153,6 @@ public class AdminController {
                 }
             });
         }
-
         if (tblPlatos != null) {
             tblPlatos.getSelectionModel().selectedItemProperty().addListener((obs, old, newVal) -> {
                 if (newVal != null) {
@@ -182,6 +174,7 @@ public class AdminController {
     // ========== CONFIGURAR TABLAS ==========
     private void configurarTablaUsuarios() {
         if (tblUsuarios == null) return;
+        tblUsuarios.getColumns().clear();
         TableColumn<Usuario, String> colDni = new TableColumn<>("DNI");
         colDni.setCellValueFactory(new PropertyValueFactory<>("dni"));
         TableColumn<Usuario, String> colNombre = new TableColumn<>("Nombre");
@@ -197,6 +190,7 @@ public class AdminController {
 
     private void configurarTablaMesas() {
         if (tblMesas == null) return;
+        tblMesas.getColumns().clear();
         TableColumn<Mesa, Integer> colNumero = new TableColumn<>("Número");
         colNumero.setCellValueFactory(new PropertyValueFactory<>("numero"));
         TableColumn<Mesa, Integer> colCapacidad = new TableColumn<>("Capacidad");
@@ -208,6 +202,7 @@ public class AdminController {
 
     private void configurarTablaPlatos() {
         if (tblPlatos == null) return;
+        tblPlatos.getColumns().clear();
         TableColumn<Plato, String> colNombre = new TableColumn<>("Nombre");
         colNombre.setCellValueFactory(new PropertyValueFactory<>("nombre"));
         TableColumn<Plato, BigDecimal> colPrecio = new TableColumn<>("Precio");
@@ -351,7 +346,6 @@ public class AdminController {
             String periodo = cmbFiltroPeriodo.getValue();
             if (periodo == null) periodo = "Hoy";
 
-            // Total de ventas (solo pedidos ENTREGADOS)
             List<Pedido> pedidos = pedidoRepository.findByEstado("ENTREGADO");
             BigDecimal totalVentas = pedidos.stream()
                     .map(Pedido::getTotal)
@@ -360,13 +354,10 @@ public class AdminController {
             if (lblTotalVentas != null) {
                 lblTotalVentas.setText("S/ " + totalVentas.toString());
             }
-
-            // Total de pedidos
             if (lblTotalPedidos != null) {
                 lblTotalPedidos.setText(String.valueOf(pedidos.size()));
             }
 
-            // Total de platos vendidos
             long totalPlatos = 0;
             for (Pedido pedido : pedidos) {
                 List<PedidoDetalle> detalles = pedidoDetalleRepository.findByPedidoId(pedido.getId());
@@ -375,13 +366,10 @@ public class AdminController {
             if (lblTotalPlatosVendidos != null) {
                 lblTotalPlatosVendidos.setText(String.valueOf(totalPlatos));
             }
-
-            // Total de usuarios
             if (lblTotalUsuarios != null) {
                 lblTotalUsuarios.setText(String.valueOf(usuarioRepository.count()));
             }
 
-            // Actualizar gráfico
             cargarGrafico();
 
         } catch (Exception e) {
@@ -395,7 +383,6 @@ public class AdminController {
             if (chartVentas == null) return;
             chartVentas.getData().clear();
 
-            // Obtener platos más vendidos
             List<Pedido> pedidos = pedidoRepository.findByEstado("ENTREGADO");
             Map<Long, Integer> conteoPlatos = new HashMap<>();
 
@@ -472,7 +459,7 @@ public class AdminController {
         }
     }
 
-    // ========== MÉTODOS DE NAVEGACIÓN ==========
+    // ========== NAVEGACIÓN ==========
     @FXML
     private void regresar() {
         try {

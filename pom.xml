@@ -133,6 +133,6 @@
 					<mainClass>pe.edu.utp.restaurante.RestauranteApplication</mainClass>
 				</configuration>
 			</plugin>
-		</plugins>
+        </plugins>
 	</build>
 </project>

@@ -14,13 +14,17 @@ import javafx.stage.Stage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import pe.edu.utp.restaurante.config.ApplicationContextProvider;
-import pe.edu.utp.restaurante.model.*;
+import pe.edu.utp.restaurante.model.Mesa;
+import pe.edu.utp.restaurante.model.Pago;
+import pe.edu.utp.restaurante.model.Pedido;
+import pe.edu.utp.restaurante.model.PedidoDetalle;
+import pe.edu.utp.restaurante.model.Usuario;
 import pe.edu.utp.restaurante.repository.MesaRepository;
 import pe.edu.utp.restaurante.repository.PagoRepository;
 import pe.edu.utp.restaurante.repository.PedidoDetalleRepository;
 import pe.edu.utp.restaurante.repository.PedidoRepository;
 import pe.edu.utp.restaurante.repository.PlatoRepository;
-
+import pe.edu.utp.restaurante.model.Plato;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -165,6 +169,7 @@ public class CajaController {
             );
         }
 
+        // ✅ ELIMINADO el código que intentaba acceder a Scene.getWindow()
         System.out.println("[CAJA] Inicialización completada");
     }
 
@@ -181,7 +186,8 @@ public class CajaController {
             if (lstMesas != null) {
                 List<Mesa> listaMesas = mesaRepository.findAll();
                 System.out.println("[CAJA] Mesas encontradas: " + listaMesas.size());
-                mesas.setAll(listaMesas);
+                mesas.clear();
+                mesas.addAll(listaMesas);
                 lstMesas.setItems(mesas);
             }
         } catch (Exception e) {
@@ -192,7 +198,6 @@ public class CajaController {
 
     private void cargarPedidosPorMesa(Mesa mesa) {
         try {
-            // Buscar pedido TERMINADO para esta mesa
             List<Pedido> pedidos = pedidoRepository.findByMesaIdAndEstado(mesa.getId(), "TERMINADO");
             if (!pedidos.isEmpty()) {
                 pedidoSeleccionado = pedidos.get(0);
@@ -241,7 +246,8 @@ public class CajaController {
     private void cargarDetallePedido(Long pedidoId) {
         try {
             List<PedidoDetalle> detalles = pedidoDetalleRepository.findByPedidoId(pedidoId);
-            detallesPedido.setAll(detalles);
+            detallesPedido.clear();
+            detallesPedido.addAll(detalles);
             if (tblDetallePedido != null) {
                 tblDetallePedido.setItems(detallesPedido);
             }
