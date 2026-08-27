@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<BorderPane style="-fx-background-color: #f5f5f5;" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="pe.edu.utp.restaurante.controller.CocinaController">
+
+    <top>
+        <HBox alignment="CENTER_LEFT" spacing="20" style="-fx-background-color: #e65100; -fx-padding: 10px 20px;">
+            <Text fill="white" style="-fx-font-size: 16px; -fx-font-weight: bold;" text="RESTAURANTE UTP - COCINA"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button onAction="#cerrarSesion" style="-fx-background-color: #b71c1c; -fx-text-fill: white; -fx-font-weight: bold;" text="CERRAR"/>
+        </HBox>
+    </top>
+
+    <center>
+        <SplitPane dividerPositions="0.35" style="-fx-background-color: transparent;">
+
+            <!-- PANEL IZQUIERDO: PEDIDOS -->
+            <VBox spacing="10" style="-fx-padding: 15px;">
+                <Label style="-fx-font-weight: bold; -fx-font-size: 14px;" text="PEDIDOS EN COCINA"/>
+                <ListView fx:id="lstPedidos" prefHeight="400.0"/>
+                <HBox spacing="10">
+                    <Button onAction="#actualizar" style="-fx-background-color: #1565c0; -fx-text-fill: white; -fx-font-weight: bold;" text="ACTUALIZAR"/>
+                </HBox>
+            </VBox>
+
+            <!-- PANEL DERECHO: DETALLE -->
+            <VBox spacing="10" style="-fx-padding: 15px;">
+                <Label style="-fx-font-weight: bold; -fx-font-size: 14px;" text="DETALLE DEL PEDIDO"/>
+
+                <GridPane hgap="10" vgap="5">
+                    <Label text="Código:" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                    <Label fx:id="lblCodigo" GridPane.rowIndex="0" GridPane.columnIndex="1" style="-fx-font-weight: bold;"/>
+
+                    <Label text="Mesa:" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                    <Label fx:id="lblMesa" GridPane.rowIndex="1" GridPane.columnIndex="1" style="-fx-font-weight: bold;"/>
+
+                    <Label text="Fecha:" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                    <Label fx:id="lblFecha" GridPane.rowIndex="2" GridPane.columnIndex="1" style="-fx-font-weight: bold;"/>
+
+                    <Label text="Estado:" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                    <Label fx:id="lblEstado" GridPane.rowIndex="3" GridPane.columnIndex="1" style="-fx-font-weight: bold;"/>
+
+                    <Label text="Total:" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
+                    <Label fx:id="lblTotal" GridPane.rowIndex="4" GridPane.columnIndex="1" style="-fx-font-weight: bold;"/>
+                </GridPane>
+
+                <Separator/>
+
+                <TableView fx:id="tblDetalles" prefHeight="200.0"/>
+
+                <TextArea fx:id="txtObservacion" promptText="Observación del pedido" prefHeight="50.0" wrapText="true" editable="false"/>
+
+                <Separator/>
+
+                <HBox spacing="10" alignment="CENTER">
+                    <ComboBox fx:id="cmbCambioEstado" onAction="#cambiarEstado" prefWidth="150.0"/>
+                    <Button fx:id="btnMarcarListo" onAction="#marcarListo" style="-fx-background-color: #2e7d32; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10px 30px;" text="MARCAR LISTO"/>
+                </HBox>
+            </VBox>
+
+        </SplitPane>
+    </center>
+
+    <bottom>
+        <HBox alignment="CENTER" spacing="20" style="-fx-background-color: #e0e0e0; -fx-padding: 10px;">
+            <Button fx:id="btnRegresar" onAction="#regresar" style="-fx-background-color: #1565c0; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8px 25px;" text="← REGRESAR AL PRINCIPAL"/>
+        </HBox>
+    </bottom>
+
+</BorderPane>

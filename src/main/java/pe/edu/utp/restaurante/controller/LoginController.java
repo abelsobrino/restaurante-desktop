@@ -13,6 +13,7 @@ import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import pe.edu.utp.restaurante.config.ApplicationContextProvider;
 import pe.edu.utp.restaurante.config.SpringContextHolder;
 import pe.edu.utp.restaurante.model.Usuario;
 import pe.edu.utp.restaurante.service.UsuarioService;
@@ -123,27 +124,42 @@ public class LoginController {
 
     private void abrirPanel(Usuario usuario) {
         try {
-            String fxml;
+            String fxmlPath;
+            String titulo;
             switch (usuario.getRol()) {
                 case "MOZO":
-                    fxml = "/fxml/MozoView.fxml";
+                    fxmlPath = "/fxml/MozoView.fxml";
+                    titulo = "MOZO";
                     break;
                 case "CAJERO":
-                    fxml = "/fxml/CajaView.fxml";
+                    fxmlPath = "/fxml/CajaView.fxml";
+                    titulo = "CAJA";
                     break;
                 case "ADMIN":
-                    fxml = "/fxml/AdminView.fxml";
+                    fxmlPath = "/fxml/AdminView.fxml";
+                    titulo = "ADMINISTRADOR";
                     break;
                 default:
-                    fxml = "/fxml/PanelPrincipalView.fxml";
+                    fxmlPath = "/fxml/PanelPrincipalView.fxml";
+                    titulo = "PRINCIPAL";
                     break;
             }
 
-            FXMLLoader loader = new FXMLLoader(getClass().getResource(fxml));
-            loader.setControllerFactory(SpringContextHolder.getContext()::getBean);
+            System.out.println("[DEBUG] Cargando FXML: " + fxmlPath);
+
+            // Verificar si el archivo existe
+            java.net.URL resource = getClass().getResource(fxmlPath);
+            if (resource == null) {
+                System.err.println("[ERROR] No se encontró el FXML: " + fxmlPath);
+                mostrarError("No se encontró la vista: " + fxmlPath);
+                return;
+            }
+
+            FXMLLoader loader = new FXMLLoader(resource);
+            loader.setControllerFactory(ApplicationContextProvider.getApplicationContext()::getBean);
             Parent root = loader.load();
 
-            // Pasar usuario al controlador
+            // Configurar el controlador según el rol
             if (usuario.getRol().equals("MOZO")) {
                 MozoController controller = loader.getController();
                 controller.setUsuario(usuario);
@@ -156,15 +172,18 @@ public class LoginController {
             }
 
             Stage stage = new Stage();
-            stage.setTitle("Restaurante UTP - " + usuario.getRol());
-            stage.setScene(new Scene(root, 700, 550));
-            stage.setResizable(false);
+            stage.setTitle("Restaurante UTP - " + titulo);
+            Scene scene = new Scene(root, 1024, 768);
+            stage.setScene(scene);
+            stage.setMaximized(true);
+            stage.setMinWidth(800);
+            stage.setMinHeight(600);
             stage.show();
 
             Stage loginStage = (Stage) btnLogin.getScene().getWindow();
             loginStage.close();
 
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             mostrarError("Error al abrir el panel: " + e.getMessage());
         }

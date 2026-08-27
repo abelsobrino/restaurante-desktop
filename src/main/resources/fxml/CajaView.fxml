@@ -5,20 +5,74 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.*?>
 
-<VBox alignment="CENTER" spacing="20" style="-fx-background-color: #f5f5f5;" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="pe.edu.utp.restaurante.controller.CajaController">
+<BorderPane style="-fx-background-color: #f5f5f5;" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="pe.edu.utp.restaurante.controller.CajaController">
 
-    <padding>
-        <Insets bottom="40" left="40" right="40" top="40"/>
-    </padding>
+    <top>
+        <HBox alignment="CENTER_LEFT" spacing="20" style="-fx-background-color: #e65100; -fx-padding: 10px 20px;">
+            <Text fill="white" style="-fx-font-size: 16px; -fx-font-weight: bold;" text="RESTAURANTE UTP - CAJA"/>
+            <Text fx:id="txtUsuario" fill="#fff3e0" style="-fx-font-size: 14px;" text="Usuario: "/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button onAction="#cerrarSesion" style="-fx-background-color: #b71c1c; -fx-text-fill: white; -fx-font-weight: bold;" text="CERRAR SESION"/>
+        </HBox>
+    </top>
 
-    <Text fill="#e65100" fontSmoothingType="GRAY" strokeType="OUTSIDE" strokeWidth="0.0" style="-fx-font-family: Arial; -fx-font-size: 24px; -fx-font-weight: bold;" text="PANEL CAJA" textAlignment="CENTER"/>
+    <center>
+        <SplitPane dividerPositions="0.3" style="-fx-background-color: transparent;">
 
-    <Text fx:id="txtUsuario" fill="#666666" fontSmoothingType="GRAY" strokeType="OUTSIDE" strokeWidth="0.0" style="-fx-font-family: Arial; -fx-font-size: 14px;" text="Usuario: " textAlignment="CENTER"/>
+            <!-- PANEL IZQUIERDO: MESAS -->
+            <VBox spacing="10" style="-fx-padding: 15px;">
+                <Label style="-fx-font-weight: bold; -fx-font-size: 14px;" text="MESAS"/>
+                <ListView fx:id="lstMesas" prefHeight="400.0"/>
+            </VBox>
 
-    <Separator prefWidth="300.0"/>
+            <!-- PANEL DERECHO: DETALLE Y COBRO -->
+            <VBox spacing="10" style="-fx-padding: 15px;">
+                <Label style="-fx-font-weight: bold; -fx-font-size: 14px;" text="DETALLE DEL PEDIDO"/>
 
-    <Label style="-fx-font-size: 14px;" text="Modulo en construccion..." textFill="#666666"/>
+                <GridPane hgap="10" vgap="5">
+                    <Label text="Mesa:" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                    <Label fx:id="lblMesaInfo" GridPane.rowIndex="0" GridPane.columnIndex="1" style="-fx-font-weight: bold;"/>
 
-    <Button onAction="#cerrarSesion" prefWidth="150.0" style="-fx-background-color: #b71c1c; -fx-text-fill: white; -fx-font-size: 13px; -fx-font-weight: bold; -fx-padding: 8px 0px; -fx-background-radius: 5px;" text="CERRAR SESION"/>
+                    <Label text="Código:" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                    <Label fx:id="lblCodigo" GridPane.rowIndex="1" GridPane.columnIndex="1" style="-fx-font-weight: bold;"/>
 
-</VBox>
+                    <Label text="Fecha:" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                    <Label fx:id="lblFecha" GridPane.rowIndex="2" GridPane.columnIndex="1" style="-fx-font-weight: bold;"/>
+
+                    <Label text="Mozo:" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                    <Label fx:id="lblMozo" GridPane.rowIndex="3" GridPane.columnIndex="1" style="-fx-font-weight: bold;"/>
+
+                    <Label text="Estado:" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
+                    <Label fx:id="lblEstado" GridPane.rowIndex="4" GridPane.columnIndex="1" style="-fx-font-weight: bold;"/>
+                </GridPane>
+
+                <Separator/>
+
+                <TableView fx:id="tblDetallePedido" prefHeight="200.0"/>
+
+                <HBox spacing="15" alignment="CENTER_RIGHT">
+                    <Label style="-fx-font-weight: bold; -fx-font-size: 14px;" text="TOTAL:"/>
+                    <Label fx:id="lblTotal" style="-fx-font-weight: bold; -fx-font-size: 20px; -fx-text-fill: #1a237e;" text="S/ 0.00"/>
+                </HBox>
+
+                <Separator/>
+
+                <Label style="-fx-font-weight: bold; -fx-font-size: 14px;" text="MÉTODO DE PAGO"/>
+                <ComboBox fx:id="cmbMetodoPago" prefWidth="200.0"/>
+                <TextField fx:id="txtReferencia" promptText="Referencia (opcional)" visible="false"/>
+
+                <HBox spacing="10" alignment="CENTER">
+                    <Button fx:id="btnCobrar" onAction="#cobrar" style="-fx-background-color: #2e7d32; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10px 30px;" text="COBRAR"/>
+                </HBox>
+            </VBox>
+
+        </SplitPane>
+    </center>
+
+    <bottom>
+        <HBox alignment="CENTER" spacing="20" style="-fx-background-color: #e0e0e0; -fx-padding: 10px;">
+            <Button fx:id="btnRegresar" onAction="#regresar" style="-fx-background-color: #1565c0; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8px 25px;" text="← REGRESAR AL PRINCIPAL"/>
+        </HBox>
+    </bottom>
+
+</BorderPane>

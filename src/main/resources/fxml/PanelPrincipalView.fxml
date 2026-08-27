@@ -23,6 +23,8 @@
         <Button fx:id="btnCajero" onAction="#seleccionarCajero" prefWidth="250.0" style="-fx-background-color: #e65100; -fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold; -fx-padding: 15px 0px; -fx-background-radius: 8px; -fx-cursor: hand;" text="CAJA"/>
 
         <Button fx:id="btnAdmin" onAction="#seleccionarAdmin" prefWidth="250.0" style="-fx-background-color: #0d47a1; -fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold; -fx-padding: 15px 0px; -fx-background-radius: 8px; -fx-cursor: hand;" text="ADMINISTRADOR"/>
+
+        <Button fx:id="btnCocina" onAction="#seleccionarCocina" prefWidth="250.0" style="-fx-background-color: #e65100; -fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold; -fx-padding: 15px 0px; -fx-background-radius: 8px; -fx-cursor: hand;" text="COCINA"/>
     </VBox>
 
 </VBox>

@@ -1,24 +1,139 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
+<?import javafx.scene.chart.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.*?>
 
-<VBox alignment="CENTER" spacing="20" style="-fx-background-color: #f5f5f5;" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="pe.edu.utp.restaurante.controller.AdminController">
+<BorderPane style="-fx-background-color: #f5f5f5;" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="pe.edu.utp.restaurante.controller.AdminController">
 
-    <padding>
-        <Insets bottom="40" left="40" right="40" top="40"/>
-    </padding>
+    <top>
+        <HBox alignment="CENTER_LEFT" spacing="20" style="-fx-background-color: #0d47a1; -fx-padding: 10px 20px;">
+            <Text fill="white" style="-fx-font-size: 16px; -fx-font-weight: bold;" text="RESTAURANTE UTP - ADMINISTRADOR"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button onAction="#cerrarSesion" style="-fx-background-color: #b71c1c; -fx-text-fill: white; -fx-font-weight: bold;" text="CERRAR SESION"/>
+        </HBox>
+    </top>
 
-    <Text fill="#0d47a1" fontSmoothingType="GRAY" strokeType="OUTSIDE" strokeWidth="0.0" style="-fx-font-family: Arial; -fx-font-size: 24px; -fx-font-weight: bold;" text="PANEL ADMINISTRADOR" textAlignment="CENTER"/>
+    <center>
+        <TabPane style="-fx-padding: 10px;">
 
-    <Text fx:id="txtUsuario" fill="#666666" fontSmoothingType="GRAY" strokeType="OUTSIDE" strokeWidth="0.0" style="-fx-font-family: Arial; -fx-font-size: 14px;" text="Usuario: " textAlignment="CENTER"/>
+            <!-- TAB ESTADÍSTICAS -->
+            <Tab text="📊 ESTADÍSTICAS" closable="false">
+                <VBox spacing="15" style="-fx-padding: 20px;">
 
-    <Separator prefWidth="300.0"/>
+                    <HBox spacing="15" alignment="CENTER">
+                        <ComboBox fx:id="cmbFiltroPeriodo" prefWidth="150.0"/>
+                        <Button onAction="#cargarEstadisticas" style="-fx-background-color: #1565c0; -fx-text-fill: white; -fx-font-weight: bold;" text="ACTUALIZAR"/>
+                    </HBox>
 
-    <Label style="-fx-font-size: 14px;" text="Modulo en construccion..." textFill="#666666"/>
+                    <GridPane hgap="20" vgap="10">
+                        <VBox spacing="5" style="-fx-background-color: #e8f5e9; -fx-padding: 15px; -fx-border-radius: 5px;">
+                            <Label text="Total Ventas" style="-fx-font-weight: bold;"/>
+                            <Label fx:id="lblTotalVentas" style="-fx-font-size: 20px; -fx-text-fill: #2e7d32;"/>
+                        </VBox>
 
-    <Button onAction="#cerrarSesion" prefWidth="150.0" style="-fx-background-color: #b71c1c; -fx-text-fill: white; -fx-font-size: 13px; -fx-font-weight: bold; -fx-padding: 8px 0px; -fx-background-radius: 5px;" text="CERRAR SESION"/>
+                        <VBox spacing="5" style="-fx-background-color: #e3f2fd; -fx-padding: 15px; -fx-border-radius: 5px;">
+                            <Label text="Total Pedidos" style="-fx-font-weight: bold;"/>
+                            <Label fx:id="lblTotalPedidos" style="-fx-font-size: 20px; -fx-text-fill: #0d47a1;"/>
+                        </VBox>
 
-</VBox>
+                        <VBox spacing="5" style="-fx-background-color: #fff3e0; -fx-padding: 15px; -fx-border-radius: 5px;">
+                            <Label text="Platos Vendidos" style="-fx-font-weight: bold;"/>
+                            <Label fx:id="lblTotalPlatosVendidos" style="-fx-font-size: 20px; -fx-text-fill: #e65100;"/>
+                        </VBox>
+
+                        <VBox spacing="5" style="-fx-background-color: #fce4ec; -fx-padding: 15px; -fx-border-radius: 5px;">
+                            <Label text="Total Usuarios" style="-fx-font-weight: bold;"/>
+                            <Label fx:id="lblTotalUsuarios" style="-fx-font-size: 20px; -fx-text-fill: #b71c1c;"/>
+                        </VBox>
+                    </GridPane>
+
+                    <BarChart fx:id="chartVentas" prefHeight="250.0">
+                        <xAxis>
+                            <CategoryAxis label="Platos"/>
+                        </xAxis>
+                        <yAxis>
+                            <NumberAxis label="Cantidad Vendida"/>
+                        </yAxis>
+                    </BarChart>
+
+                </VBox>
+            </Tab>
+
+            <!-- TAB USUARIOS -->
+            <Tab text="👤 USUARIOS" closable="false">
+                <SplitPane dividerPositions="0.6" style="-fx-background-color: transparent;">
+                    <VBox spacing="10" style="-fx-padding: 10px;">
+                        <Label style="-fx-font-weight: bold;" text="LISTA DE USUARIOS"/>
+                        <TableView fx:id="tblUsuarios" prefHeight="400.0"/>
+                    </VBox>
+                    <VBox spacing="10" style="-fx-padding: 10px;">
+                        <Label style="-fx-font-weight: bold;" text="FORMULARIO"/>
+                        <TextField fx:id="txtDni" promptText="DNI"/>
+                        <TextField fx:id="txtNombre" promptText="Nombre"/>
+                        <TextField fx:id="txtApellido" promptText="Apellido"/>
+                        <TextField fx:id="txtEmail" promptText="Email"/>
+                        <PasswordField fx:id="txtPassword" promptText="Contraseña"/>
+                        <ComboBox fx:id="cmbRol" promptText="Rol"/>
+                        <HBox spacing="10">
+                            <Button fx:id="btnGuardarUsuario" onAction="#guardarUsuario" style="-fx-background-color: #2e7d32; -fx-text-fill: white; -fx-font-weight: bold;" text="GUARDAR"/>
+                            <Button fx:id="btnEliminarUsuario" onAction="#eliminarUsuario" style="-fx-background-color: #b71c1c; -fx-text-fill: white; -fx-font-weight: bold;" text="ELIMINAR"/>
+                        </HBox>
+                    </VBox>
+                </SplitPane>
+            </Tab>
+
+            <!-- TAB MESAS -->
+            <Tab text="🪑 MESAS" closable="false">
+                <SplitPane dividerPositions="0.6" style="-fx-background-color: transparent;">
+                    <VBox spacing="10" style="-fx-padding: 10px;">
+                        <Label style="-fx-font-weight: bold;" text="LISTA DE MESAS"/>
+                        <TableView fx:id="tblMesas" prefHeight="400.0"/>
+                    </VBox>
+                    <VBox spacing="10" style="-fx-padding: 10px;">
+                        <Label style="-fx-font-weight: bold;" text="FORMULARIO"/>
+                        <TextField fx:id="txtNumeroMesa" promptText="Número"/>
+                        <TextField fx:id="txtCapacidadMesa" promptText="Capacidad"/>
+                        <ComboBox fx:id="cmbEstadoMesa" promptText="Estado"/>
+                        <HBox spacing="10">
+                            <Button fx:id="btnGuardarMesa" onAction="#guardarMesa" style="-fx-background-color: #2e7d32; -fx-text-fill: white; -fx-font-weight: bold;" text="GUARDAR"/>
+                            <Button fx:id="btnEliminarMesa" onAction="#eliminarMesa" style="-fx-background-color: #b71c1c; -fx-text-fill: white; -fx-font-weight: bold;" text="ELIMINAR"/>
+                        </HBox>
+                    </VBox>
+                </SplitPane>
+            </Tab>
+
+            <!-- TAB PLATOS -->
+            <Tab text="🍽️ PLATOS" closable="false">
+                <SplitPane dividerPositions="0.6" style="-fx-background-color: transparent;">
+                    <VBox spacing="10" style="-fx-padding: 10px;">
+                        <Label style="-fx-font-weight: bold;" text="LISTA DE PLATOS"/>
+                        <TableView fx:id="tblPlatos" prefHeight="400.0"/>
+                    </VBox>
+                    <VBox spacing="10" style="-fx-padding: 10px;">
+                        <Label style="-fx-font-weight: bold;" text="FORMULARIO"/>
+                        <TextField fx:id="txtNombrePlato" promptText="Nombre"/>
+                        <TextField fx:id="txtDescripcionPlato" promptText="Descripción"/>
+                        <TextField fx:id="txtPrecioPlato" promptText="Precio"/>
+                        <ComboBox fx:id="cmbCategoriaPlato" promptText="Categoría"/>
+                        <CheckBox fx:id="chkDisponiblePlato" text="Disponible"/>
+                        <HBox spacing="10">
+                            <Button fx:id="btnGuardarPlato" onAction="#guardarPlato" style="-fx-background-color: #2e7d32; -fx-text-fill: white; -fx-font-weight: bold;" text="GUARDAR"/>
+                            <Button fx:id="btnEliminarPlato" onAction="#eliminarPlato" style="-fx-background-color: #b71c1c; -fx-text-fill: white; -fx-font-weight: bold;" text="ELIMINAR"/>
+                        </HBox>
+                    </VBox>
+                </SplitPane>
+            </Tab>
+
+        </TabPane>
+    </center>
+
+    <bottom>
+        <HBox alignment="CENTER" spacing="20" style="-fx-background-color: #e0e0e0; -fx-padding: 10px;">
+            <Button fx:id="btnRegresar" onAction="#regresar" style="-fx-background-color: #1565c0; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8px 25px;" text="← REGRESAR AL PRINCIPAL"/>
+        </HBox>
+    </bottom>
+
+</BorderPane>

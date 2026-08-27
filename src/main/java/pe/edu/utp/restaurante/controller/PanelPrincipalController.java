@@ -7,7 +7,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.stage.Stage;
 import org.springframework.stereotype.Component;
-import pe.edu.utp.restaurante.config.SpringContextHolder;
+import pe.edu.utp.restaurante.config.ApplicationContextProvider;
 
 import java.io.IOException;
 
@@ -22,6 +22,9 @@ public class PanelPrincipalController {
 
     @FXML
     private Button btnAdmin;
+
+    @FXML
+    private Button btnCocina;
 
     @FXML
     public void initialize() {
@@ -46,10 +49,16 @@ public class PanelPrincipalController {
         abrirLogin("ADMIN");
     }
 
+    @FXML
+    private void seleccionarCocina() {
+        System.out.println("[ACCESO] Seleccionado COCINA");
+        abrirCocina();
+    }
+
     private void abrirLogin(String rol) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/LoginView.fxml"));
-            loader.setControllerFactory(SpringContextHolder.getContext()::getBean);
+            loader.setControllerFactory(ApplicationContextProvider.getApplicationContext()::getBean);
             Parent root = loader.load();
 
             LoginController controller = loader.getController();
@@ -57,8 +66,11 @@ public class PanelPrincipalController {
 
             Stage loginStage = new Stage();
             loginStage.setTitle("Acceso - " + rol);
-            loginStage.setScene(new Scene(root, 380, 350));
-            loginStage.setResizable(false);
+
+            Scene scene = new Scene(root, 400, 380);
+            loginStage.setScene(scene);
+            loginStage.setMinWidth(350);
+            loginStage.setMinHeight(350);
             loginStage.show();
 
             Stage stage = (Stage) btnMozo.getScene().getWindow();
@@ -68,4 +80,29 @@ public class PanelPrincipalController {
             e.printStackTrace();
         }
     }
+
+    private void abrirCocina() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/CocinaView.fxml"));
+            loader.setControllerFactory(ApplicationContextProvider.getApplicationContext()::getBean);
+            Parent root = loader.load();
+
+            Stage stage = new Stage();
+            stage.setTitle("Restaurante UTP - COCINA");
+
+            Scene scene = new Scene(root, 1024, 768);
+            stage.setScene(scene);
+            stage.setMaximized(true);
+            stage.setMinWidth(800);
+            stage.setMinHeight(600);
+            stage.show();
+
+            Stage mainStage = (Stage) btnMozo.getScene().getWindow();
+            mainStage.close();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
 }
