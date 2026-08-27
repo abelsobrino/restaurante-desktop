@@ -14,11 +14,8 @@ import javafx.stage.Stage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import pe.edu.utp.restaurante.config.ApplicationContextProvider;
-import pe.edu.utp.restaurante.config.SpringContextHolder;
 import pe.edu.utp.restaurante.model.Usuario;
 import pe.edu.utp.restaurante.service.UsuarioService;
-
-import java.io.IOException;
 
 @Component
 public class LoginController {
@@ -86,7 +83,6 @@ public class LoginController {
             return;
         }
 
-        // Buscar usuario
         usuarioService.buscarPorDni(dni).ifPresentOrElse(
                 usuario -> {
                     if (!usuario.getRol().equals(rolSeleccionado)) {
@@ -147,7 +143,6 @@ public class LoginController {
 
             System.out.println("[DEBUG] Cargando FXML: " + fxmlPath);
 
-            // Verificar si el archivo existe
             java.net.URL resource = getClass().getResource(fxmlPath);
             if (resource == null) {
                 System.err.println("[ERROR] No se encontró el FXML: " + fxmlPath);
@@ -159,7 +154,6 @@ public class LoginController {
             loader.setControllerFactory(ApplicationContextProvider.getApplicationContext()::getBean);
             Parent root = loader.load();
 
-            // Configurar el controlador según el rol
             if (usuario.getRol().equals("MOZO")) {
                 MozoController controller = loader.getController();
                 controller.setUsuario(usuario);

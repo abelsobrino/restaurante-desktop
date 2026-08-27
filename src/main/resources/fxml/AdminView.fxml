@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.Insets?>
 <?import javafx.scene.chart.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
@@ -19,8 +18,7 @@
     <center>
         <TabPane style="-fx-padding: 10px;">
 
-            <!-- TAB ESTADÍSTICAS -->
-            <Tab text="📊 ESTADÍSTICAS" closable="false">
+            <Tab text="ESTADÍSTICAS" closable="false">
                 <VBox spacing="15" style="-fx-padding: 20px;">
 
                     <HBox spacing="15" alignment="CENTER">
@@ -62,8 +60,7 @@
                 </VBox>
             </Tab>
 
-            <!-- TAB USUARIOS -->
-            <Tab text="👤 USUARIOS" closable="false">
+            <Tab text="USUARIOS" closable="false">
                 <SplitPane dividerPositions="0.6" style="-fx-background-color: transparent;">
                     <VBox spacing="10" style="-fx-padding: 10px;">
                         <Label style="-fx-font-weight: bold;" text="LISTA DE USUARIOS"/>
@@ -85,7 +82,6 @@
                 </SplitPane>
             </Tab>
 
-            <!-- TAB MESAS -->
             <Tab text="🪑 MESAS" closable="false">
                 <SplitPane dividerPositions="0.6" style="-fx-background-color: transparent;">
                     <VBox spacing="10" style="-fx-padding: 10px;">
@@ -105,7 +101,6 @@
                 </SplitPane>
             </Tab>
 
-            <!-- TAB PLATOS -->
             <Tab text="🍽️ PLATOS" closable="false">
                 <SplitPane dividerPositions="0.6" style="-fx-background-color: transparent;">
                     <VBox spacing="10" style="-fx-padding: 10px;">

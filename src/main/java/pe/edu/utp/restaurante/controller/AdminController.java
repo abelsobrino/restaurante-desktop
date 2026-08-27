@@ -1,18 +1,15 @@
 package pe.edu.utp.restaurante.controller;
 
 import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.chart.BarChart;
-import javafx.scene.chart.CategoryAxis;
-import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.text.Text;
+
 import javafx.stage.Stage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -54,7 +51,6 @@ public class AdminController {
 
     private Usuario usuarioActual;
 
-    // TABLA USUARIOS
     @FXML
     private TableView<Usuario> tblUsuarios;
     @FXML
@@ -66,7 +62,6 @@ public class AdminController {
     @FXML
     private Button btnGuardarUsuario, btnEliminarUsuario;
 
-    // TABLA MESAS
     @FXML
     private TableView<Mesa> tblMesas;
     @FXML
@@ -76,7 +71,6 @@ public class AdminController {
     @FXML
     private Button btnGuardarMesa, btnEliminarMesa;
 
-    // TABLA PLATOS
     @FXML
     private TableView<Plato> tblPlatos;
     @FXML
@@ -88,7 +82,6 @@ public class AdminController {
     @FXML
     private Button btnGuardarPlato, btnEliminarPlato;
 
-    // ESTADÍSTICAS
     @FXML
     private Label lblTotalVentas, lblTotalPedidos, lblTotalPlatosVendidos, lblTotalUsuarios;
     @FXML
@@ -120,18 +113,15 @@ public class AdminController {
             cmbFiltroPeriodo.setOnAction(e -> cargarEstadisticas());
         }
 
-        // Configurar tablas
         configurarTablaUsuarios();
         configurarTablaMesas();
         configurarTablaPlatos();
 
-        // Cargar datos
         cargarUsuarios();
         cargarMesas();
         cargarPlatos();
         cargarEstadisticas();
 
-        // Eventos de selección
         if (tblUsuarios != null) {
             tblUsuarios.getSelectionModel().selectedItemProperty().addListener((obs, old, newVal) -> {
                 if (newVal != null) {
@@ -171,7 +161,6 @@ public class AdminController {
         this.usuarioActual = usuario;
     }
 
-    // ========== CONFIGURAR TABLAS ==========
     private void configurarTablaUsuarios() {
         if (tblUsuarios == null) return;
         tblUsuarios.getColumns().clear();
@@ -212,7 +201,6 @@ public class AdminController {
         tblPlatos.getColumns().addAll(colNombre, colPrecio, colDisponible);
     }
 
-    // ========== CRUD USUARIOS ==========
     @FXML
     private void guardarUsuario() {
         try {
@@ -262,7 +250,6 @@ public class AdminController {
         mostrarAlerta("Éxito", "Usuario eliminado", Alert.AlertType.INFORMATION);
     }
 
-    // ========== CRUD MESAS ==========
     @FXML
     private void guardarMesa() {
         try {
@@ -295,7 +282,6 @@ public class AdminController {
         mostrarAlerta("Éxito", "Mesa eliminada", Alert.AlertType.INFORMATION);
     }
 
-    // ========== CRUD PLATOS ==========
     @FXML
     private void guardarPlato() {
         try {
@@ -334,7 +320,6 @@ public class AdminController {
         mostrarAlerta("Éxito", "Plato eliminado", Alert.AlertType.INFORMATION);
     }
 
-    // ========== ESTADÍSTICAS ==========
     @FXML
     private void actualizarEstadisticas() {
         cargarEstadisticas();
@@ -414,7 +399,6 @@ public class AdminController {
         }
     }
 
-    // ========== LIMPIAR FORMULARIOS ==========
     private void limpiarFormularioUsuario() {
         txtDni.clear();
         txtNombre.clear();
@@ -440,7 +424,6 @@ public class AdminController {
         tblPlatos.getSelectionModel().clearSelection();
     }
 
-    // ========== CARGAR DATOS ==========
     private void cargarUsuarios() {
         if (tblUsuarios != null) {
             tblUsuarios.setItems(FXCollections.observableArrayList(usuarioRepository.findAll()));
@@ -459,7 +442,6 @@ public class AdminController {
         }
     }
 
-    // ========== NAVEGACIÓN ==========
     @FXML
     private void regresar() {
         try {

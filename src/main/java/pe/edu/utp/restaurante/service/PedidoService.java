@@ -19,12 +19,7 @@ public class PedidoService {
     @Autowired
     private PedidoDetalleRepository pedidoDetalleRepository;
 
-    /**
-     * Guarda el pedido y reemplaza sus detalles de forma atomica.
-     * Toda la logica transaccional vive aqui (fuera de los controladores JavaFX)
-     * para que Spring no necesite crear un proxy CGLIB de los controladores,
-     * lo cual rompe la inyeccion de campos @FXML.
-     */
+
     @Transactional
     public Pedido guardarPedidoConDetalles(Pedido pedido, List<PedidoDetalle> detalles) {
         Pedido guardado = pedidoRepository.save(pedido);

@@ -74,7 +74,6 @@ public class CocinaController {
 
     @FXML
     public void initialize() {
-        // Configurar ListView de pedidos
         lstPedidos.setCellFactory(lv -> new ListCell<Pedido>() {
             @Override
             protected void updateItem(Pedido pedido, boolean empty) {
@@ -96,7 +95,6 @@ public class CocinaController {
             }
         });
 
-        // Selección de pedido
         lstPedidos.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null) {
                 pedidoSeleccionado = newVal;
@@ -105,7 +103,6 @@ public class CocinaController {
             }
         });
 
-        // Configurar ComboBox de estados (solo 2 estados)
         cmbCambioEstado.setItems(FXCollections.observableArrayList("EN_PROCESO", "LISTO"));
 
         // Configurar tabla de detalles
@@ -129,7 +126,6 @@ public class CocinaController {
         tblDetalles.getColumns().clear();
         tblDetalles.getColumns().addAll(colPlato, colCant, colObs);
 
-        // Cargar pedidos
         cargarPedidos();
     }
 
@@ -166,7 +162,7 @@ public class CocinaController {
             return;
         }
 
-        pedidoSeleccionado.setEstado("LISTO");  // ✅ Estado correcto
+        pedidoSeleccionado.setEstado("LISTO");
         pedidoSeleccionado.setUpdatedAt(LocalDateTime.now());
         pedidoRepository.save(pedidoSeleccionado);
 

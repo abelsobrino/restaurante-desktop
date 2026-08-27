@@ -96,7 +96,6 @@ public class CajaController {
     public void initialize() {
         System.out.println("[CAJA] Inicializando controlador...");
 
-        // Configurar métodos de pago
         if (cmbMetodoPago != null) {
             cmbMetodoPago.setItems(FXCollections.observableArrayList(
                     "EFECTIVO", "TARJETA", "YAPE", "TRANSFERENCIA", "OTRO"
@@ -109,7 +108,6 @@ public class CajaController {
             });
         }
 
-        // Configurar ListView de Mesas
         if (lstMesas != null) {
             lstMesas.setCellFactory(lv -> new ListCell<Mesa>() {
                 @Override
@@ -158,10 +156,8 @@ public class CajaController {
             tblDetallePedido.setItems(detallesPedido);
         }
 
-        // Cargar mesas
         cargarMesas();
 
-        // Botón cobrar deshabilitado inicialmente
         if (btnCobrar != null && tblDetallePedido != null) {
             btnCobrar.disableProperty().bind(
                     tblDetallePedido.itemsProperty().isNull()
@@ -169,7 +165,6 @@ public class CajaController {
             );
         }
 
-        // ✅ ELIMINADO el código que intentaba acceder a Scene.getWindow()
         System.out.println("[CAJA] Inicialización completada");
     }
 
@@ -286,7 +281,7 @@ public class CajaController {
             pedidoSeleccionado.setFechaCierre(LocalDateTime.now());
             pedidoRepository.save(pedidoSeleccionado);
 
-            mostrarMensaje("✅ Cobro registrado exitosamente", "success");
+            mostrarMensaje("Cobro registrado exitosamente", "success");
             detallesPedido.clear();
             lblTotal.setText("S/ 0.00");
             if (lblFecha != null) lblFecha.setText("Fecha: -");

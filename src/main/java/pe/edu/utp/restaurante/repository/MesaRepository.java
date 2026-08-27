@@ -8,7 +8,5 @@ import java.util.*;
 
 @Repository
 public interface MesaRepository extends JpaRepository<Mesa, Long> {
-    List<Mesa> findByEstado(String estado);
-
     Optional<Mesa> findByNumero(Integer numero);
 }

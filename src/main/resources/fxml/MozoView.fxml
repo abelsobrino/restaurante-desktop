@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.*?>
@@ -20,14 +19,12 @@
     <center>
         <SplitPane dividerPositions="0.2, 0.55" style="-fx-background-color: transparent;">
 
-            <!-- PANEL IZQUIERDO: MESAS -->
             <VBox spacing="10" style="-fx-padding: 15px;">
                 <Label style="-fx-font-weight: bold; -fx-font-size: 14px;" text="MESAS"/>
                 <ListView fx:id="lstMesas" prefHeight="400.0"/>
                 <Button fx:id="btnLiberarMesa" onAction="#liberarMesa" style="-fx-background-color: #b71c1c; -fx-text-fill: white; -fx-font-weight: bold;" text="LIBERAR MESA"/>
             </VBox>
 
-            <!-- PANEL CENTRAL: PLATOS -->
             <VBox spacing="10" style="-fx-padding: 15px;">
                 <Label style="-fx-font-weight: bold; -fx-font-size: 14px;" text="CARTA - PLATOS DISPONIBLES"/>
                 <TextField fx:id="txtBuscarPlato" promptText="Buscar plato..."/>
@@ -39,7 +36,6 @@
                 </HBox>
             </VBox>
 
-            <!-- PANEL DERECHO: PEDIDO -->
             <VBox spacing="10" style="-fx-padding: 15px;">
                 <Label style="-fx-font-weight: bold; -fx-font-size: 14px;" text="PEDIDO ACTUAL"/>
                 <TableView fx:id="tblPedido" prefHeight="250.0"/>

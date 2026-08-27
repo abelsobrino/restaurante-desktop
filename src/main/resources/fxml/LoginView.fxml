@@ -17,13 +17,11 @@
 
     <Separator prefWidth="280.0"/>
 
-    <!-- Campo DNI -->
     <HBox alignment="CENTER_LEFT" spacing="10" prefWidth="300.0">
         <Label prefWidth="80.0" style="-fx-font-weight: bold;" text="DNI:"/>
         <TextField fx:id="txtDni" prefWidth="200.0" promptText="Ingrese su DNI" onAction="#handleLogin"/>
     </HBox>
 
-    <!-- Campo Contraseña (visible solo para Admin y Cajero) -->
     <HBox fx:id="passwordContainer" alignment="CENTER_LEFT" spacing="10" prefWidth="300.0" visible="false" managed="false">
         <Label prefWidth="80.0" style="-fx-font-weight: bold;" text="Clave:"/>
         <PasswordField fx:id="txtPassword" prefWidth="200.0" promptText="Ingrese su clave" onAction="#handleLogin"/>

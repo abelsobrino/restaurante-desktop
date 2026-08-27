@@ -97,17 +97,9 @@ public class MozoController {
     private Button btnTerminarPedido;
 
     @FXML
-    private Button btnCancelarPedido;
-
-    @FXML
-    private Button btnRegresar;
-
-    @FXML
     public void initialize() {
-        // Configurar Spinner
         spnCantidad.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 20, 1));
 
-        // Configurar ListView de Mesas
         lstMesas.setCellFactory(lv -> new ListCell<Mesa>() {
             @Override
             protected void updateItem(Mesa mesa, boolean empty) {
@@ -128,7 +120,6 @@ public class MozoController {
             }
         });
 
-        // Selección de mesa
         lstMesas.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null) {
                 mesaSeleccionada = newVal;
@@ -137,7 +128,6 @@ public class MozoController {
             }
         });
 
-        // Configurar ListView de Platos
         lstPlatos.setCellFactory(lv -> new ListCell<Plato>() {
             @Override
             protected void updateItem(Plato plato, boolean empty) {
@@ -150,7 +140,6 @@ public class MozoController {
             }
         });
 
-        // Configurar TableView del pedido
         TableColumn<PedidoDetalle, String> colPlato = new TableColumn<>("Plato");
         colPlato.setCellValueFactory(cellData -> {
             String nombre = platoRepository.findById(cellData.getValue().getPlatoId())
@@ -199,14 +188,11 @@ public class MozoController {
         tblPedido.getColumns().addAll(colPlato, colCantidad, colPrecio, colSubtotal, colAccion);
         tblPedido.setItems(pedidoActual);
 
-        // Cargar datos
         cargarMesas();
         cargarPlatos();
 
-        // Eventos
         txtBuscarPlato.textProperty().addListener((obs, oldVal, newVal) -> filtrarPlatos());
 
-        // Deshabilitar botones
         btnAgregarPlato.disableProperty().bind(lstMesas.getSelectionModel().selectedItemProperty().isNull());
 
         btnEnviarCocina.disableProperty().bind(

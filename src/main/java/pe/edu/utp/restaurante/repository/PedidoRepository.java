@@ -10,12 +10,6 @@ import java.util.Optional;
 @Repository
 public interface PedidoRepository extends JpaRepository<Pedido, Long> {
     Optional<Pedido> findByMesaIdAndEstadoNot(Long mesaId, String estado);
-
-    List<Pedido> findByEstadoAndCerrado(String estado, Boolean cerrado);
-
     List<Pedido> findByEstado(String estado);
-
-    List<Pedido> findByMesaId(Long mesaId);
-
     List<Pedido> findByMesaIdAndEstado(Long mesaId, String estado);
 }

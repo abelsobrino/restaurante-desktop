@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.*?>
@@ -19,13 +18,11 @@
     <center>
         <SplitPane dividerPositions="0.3" style="-fx-background-color: transparent;">
 
-            <!-- PANEL IZQUIERDO: MESAS -->
             <VBox spacing="10" style="-fx-padding: 15px;">
                 <Label style="-fx-font-weight: bold; -fx-font-size: 14px;" text="MESAS"/>
                 <ListView fx:id="lstMesas" prefHeight="400.0"/>
             </VBox>
 
-            <!-- PANEL DERECHO: DETALLE Y COBRO -->
             <VBox spacing="10" style="-fx-padding: 15px;">
                 <Label style="-fx-font-weight: bold; -fx-font-size: 14px;" text="DETALLE DEL PEDIDO"/>
 
