@@ -24,17 +24,26 @@ public class Pedido {
     @Column(nullable = false, length = 20)
     private String tipo = "LOCAL";
 
+    @Column(nullable = false, length = 20)
+    private String origen = "PRESENCIAL";
+
     @Column(name = "mesa_id")
     private Long mesaId;
 
     @Column(name = "usuario_id")
     private Long usuarioId;
 
+    @Column(name = "cliente_id")
+    private Long clienteId;
+
     @Column(name = "cliente_nombre")
     private String clienteNombre;
 
     @Column(name = "cliente_telefono", length = 20)
     private String clienteTelefono;
+
+    @Column(name = "direccion_entrega")
+    private String direccionEntrega;
 
     @Column(length = 20)
     private String estado = "PENDIENTE";

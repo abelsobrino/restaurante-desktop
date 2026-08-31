@@ -5,8 +5,6 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.chart.BarChart;
-import javafx.scene.chart.XYChart;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 
@@ -14,11 +12,13 @@ import javafx.stage.Stage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import pe.edu.utp.restaurante.config.ApplicationContextProvider;
+import pe.edu.utp.restaurante.model.Categoria;
 import pe.edu.utp.restaurante.model.Mesa;
 import pe.edu.utp.restaurante.model.Pedido;
 import pe.edu.utp.restaurante.model.PedidoDetalle;
 import pe.edu.utp.restaurante.model.Plato;
 import pe.edu.utp.restaurante.model.Usuario;
+import pe.edu.utp.restaurante.repository.CategoriaRepository;
 import pe.edu.utp.restaurante.repository.MesaRepository;
 import pe.edu.utp.restaurante.repository.PedidoDetalleRepository;
 import pe.edu.utp.restaurante.repository.PedidoRepository;
@@ -27,9 +27,7 @@ import pe.edu.utp.restaurante.repository.UsuarioRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Component
 public class AdminController {
@@ -49,7 +47,11 @@ public class AdminController {
     @Autowired
     private PedidoDetalleRepository pedidoDetalleRepository;
 
+    @Autowired
+    private CategoriaRepository categoriaRepository;
+
     private Usuario usuarioActual;
+    private Plato platoSeleccionado;
 
     @FXML
     private TableView<Usuario> tblUsuarios;
@@ -85,8 +87,6 @@ public class AdminController {
     @FXML
     private Label lblTotalVentas, lblTotalPedidos, lblTotalPlatosVendidos, lblTotalUsuarios;
     @FXML
-    private BarChart<String, Number> chartVentas;
-    @FXML
     private ComboBox<String> cmbFiltroPeriodo;
     @FXML
     private Button btnRegresar;
@@ -102,16 +102,13 @@ public class AdminController {
         if (cmbEstadoMesa != null) {
             cmbEstadoMesa.setItems(FXCollections.observableArrayList("DISPONIBLE", "OCUPADA", "RESERVADA"));
         }
-        if (cmbCategoriaPlato != null) {
-            cmbCategoriaPlato.setItems(FXCollections.observableArrayList(
-                    "Entradas", "Platos Principales", "Bebidas", "Postres", "Carnes", "Pescados"
-            ));
-        }
         if (cmbFiltroPeriodo != null) {
             cmbFiltroPeriodo.setItems(FXCollections.observableArrayList("Hoy", "Esta Semana", "Este Mes"));
             cmbFiltroPeriodo.setValue("Hoy");
             cmbFiltroPeriodo.setOnAction(e -> cargarEstadisticas());
         }
+
+        cargarCategoriasEnCombo();
 
         configurarTablaUsuarios();
         configurarTablaMesas();
@@ -146,10 +143,17 @@ public class AdminController {
         if (tblPlatos != null) {
             tblPlatos.getSelectionModel().selectedItemProperty().addListener((obs, old, newVal) -> {
                 if (newVal != null) {
+                    platoSeleccionado = newVal;
                     txtNombrePlato.setText(newVal.getNombre());
                     txtDescripcionPlato.setText(newVal.getDescripcion());
                     txtPrecioPlato.setText(String.valueOf(newVal.getPrecio()));
                     chkDisponiblePlato.setSelected(newVal.getDisponible() != null && newVal.getDisponible());
+                    if (newVal.getCategoriaId() != null) {
+                        categoriaRepository.findById(newVal.getCategoriaId())
+                                .ifPresent(cat -> cmbCategoriaPlato.setValue(cat.getNombre()));
+                    } else {
+                        cmbCategoriaPlato.setValue(null);
+                    }
                 }
             });
         }
@@ -159,6 +163,14 @@ public class AdminController {
 
     public void setUsuario(Usuario usuario) {
         this.usuarioActual = usuario;
+    }
+
+    private void cargarCategoriasEnCombo() {
+        if (cmbCategoriaPlato == null) return;
+        List<String> nombres = categoriaRepository.findAll().stream()
+                .map(Categoria::getNombre)
+                .toList();
+        cmbCategoriaPlato.setItems(FXCollections.observableArrayList(nombres));
     }
 
     private void configurarTablaUsuarios() {
@@ -291,12 +303,23 @@ public class AdminController {
                 return;
             }
 
-            Plato plato = new Plato();
+            Plato plato = (platoSeleccionado != null) ? platoSeleccionado : new Plato();
             plato.setNombre(nombre);
             plato.setDescripcion(txtDescripcionPlato.getText().trim());
             plato.setPrecio(new BigDecimal(txtPrecioPlato.getText().trim()));
             plato.setDisponible(chkDisponiblePlato.isSelected());
-            plato.setCreatedAt(LocalDateTime.now());
+
+            String categoriaNombre = cmbCategoriaPlato.getValue();
+            if (categoriaNombre != null) {
+                categoriaRepository.findByNombre(categoriaNombre)
+                        .ifPresent(cat -> plato.setCategoriaId(cat.getId()));
+            } else {
+                plato.setCategoriaId(null);
+            }
+
+            if (plato.getId() == null) {
+                plato.setCreatedAt(LocalDateTime.now());
+            }
             plato.setUpdatedAt(LocalDateTime.now());
 
             platoRepository.save(plato);
@@ -317,6 +340,7 @@ public class AdminController {
         }
         platoRepository.delete(plato);
         cargarPlatos();
+        limpiarFormularioPlato();
         mostrarAlerta("Éxito", "Plato eliminado", Alert.AlertType.INFORMATION);
     }
 
@@ -355,47 +379,9 @@ public class AdminController {
                 lblTotalUsuarios.setText(String.valueOf(usuarioRepository.count()));
             }
 
-            cargarGrafico();
-
         } catch (Exception e) {
             e.printStackTrace();
             System.err.println("[ERROR] Error al cargar estadísticas: " + e.getMessage());
-        }
-    }
-
-    private void cargarGrafico() {
-        try {
-            if (chartVentas == null) return;
-            chartVentas.getData().clear();
-
-            List<Pedido> pedidos = pedidoRepository.findByEstado("ENTREGADO");
-            Map<Long, Integer> conteoPlatos = new HashMap<>();
-
-            for (Pedido pedido : pedidos) {
-                List<PedidoDetalle> detalles = pedidoDetalleRepository.findByPedidoId(pedido.getId());
-                for (PedidoDetalle detalle : detalles) {
-                    conteoPlatos.merge(detalle.getPlatoId(), detalle.getCantidad(), Integer::sum);
-                }
-            }
-
-            XYChart.Series<String, Number> series = new XYChart.Series<>();
-            series.setName("Platos más vendidos");
-
-            conteoPlatos.entrySet().stream()
-                    .sorted((a, b) -> b.getValue().compareTo(a.getValue()))
-                    .limit(10)
-                    .forEach(entry -> {
-                        String nombre = platoRepository.findById(entry.getKey())
-                                .map(Plato::getNombre)
-                                .orElse("Desconocido");
-                        series.getData().add(new XYChart.Data<>(nombre, entry.getValue()));
-                    });
-
-            chartVentas.getData().add(series);
-
-        } catch (Exception e) {
-            System.err.println("[ERROR] Error al cargar gráfico: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 
@@ -421,7 +407,9 @@ public class AdminController {
         txtDescripcionPlato.clear();
         txtPrecioPlato.clear();
         chkDisponiblePlato.setSelected(true);
+        cmbCategoriaPlato.setValue(null);
         tblPlatos.getSelectionModel().clearSelection();
+        platoSeleccionado = null;
     }
 
     private void cargarUsuarios() {

@@ -8,7 +8,7 @@
 
     <top>
         <HBox alignment="CENTER_LEFT" spacing="20" style="-fx-background-color: #2e7d32; -fx-padding: 10px 20px;">
-            <Text fill="white" style="-fx-font-size: 16px; -fx-font-weight: bold;" text="RESTAURANTE UTP - MOZO"/>
+            <Text fill="white" style="-fx-font-size: 16px; -fx-font-weight: bold;" text="RESTAURANTE LA FONDA - MOZO"/>
             <Text fx:id="txtUsuario" fill="#e8f5e9" style="-fx-font-size: 14px;" text="Usuario: "/>
             <Text fx:id="txtMesaSeleccionada" fill="#e8f5e9" style="-fx-font-size: 14px;" text="Mesa: Ninguna"/>
             <Region HBox.hgrow="ALWAYS"/>

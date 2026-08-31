@@ -11,7 +11,7 @@
         <Insets bottom="50" left="50" right="50" top="50"/>
     </padding>
 
-    <Text fill="#1a237e" fontSmoothingType="GRAY" strokeType="OUTSIDE" strokeWidth="0.0" style="-fx-font-family: Arial; -fx-font-size: 28px; -fx-font-weight: bold;" text="RESTAURANTE UTP" textAlignment="CENTER"/>
+    <Text fill="#1a237e" fontSmoothingType="GRAY" strokeType="OUTSIDE" strokeWidth="0.0" style="-fx-font-family: Arial; -fx-font-size: 28px; -fx-font-weight: bold;" text="RESTAURANTE LA FONDA" textAlignment="CENTER"/>
 
     <Text fill="#666666" fontSmoothingType="GRAY" strokeType="OUTSIDE" strokeWidth="0.0" style="-fx-font-family: Arial; -fx-font-size: 14px;" text="Seleccione su rol para continuar" textAlignment="CENTER"/>
 

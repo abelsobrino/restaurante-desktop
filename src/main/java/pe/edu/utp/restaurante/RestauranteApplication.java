@@ -21,7 +21,7 @@ public class RestauranteApplication extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
-        primaryStage.setTitle("Restaurante UTP");
+        primaryStage.setTitle("Restaurante LaFonda");
         primaryStage.setResizable(false);
 
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/PanelPrincipalView.fxml"));
@@ -32,7 +32,7 @@ public class RestauranteApplication extends Application {
         primaryStage.setScene(scene);
         primaryStage.show();
 
-        System.out.println("[SISTEMA] Restaurante UTP iniciado");
+        System.out.println("[SISTEMA] Restaurante LaFonda iniciado");
     }
 
     @Override

@@ -88,7 +88,7 @@ public class PanelPrincipalController {
             Parent root = loader.load();
 
             Stage stage = new Stage();
-            stage.setTitle("Restaurante UTP - COCINA");
+            stage.setTitle("Restaurante LA FONDA - COCINA");
 
             Scene scene = new Scene(root, 1024, 768);
             stage.setScene(scene);

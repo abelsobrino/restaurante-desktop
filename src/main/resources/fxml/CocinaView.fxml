@@ -9,7 +9,7 @@
 
     <top>
         <HBox alignment="CENTER_LEFT" spacing="20" style="-fx-background-color: #e65100; -fx-padding: 10px 20px;">
-            <Text fill="white" style="-fx-font-size: 16px; -fx-font-weight: bold;" text="RESTAURANTE UTP - COCINA"/>
+            <Text fill="white" style="-fx-font-size: 16px; -fx-font-weight: bold;" text="RESTAURANTE LA FONDA - COCINA"/>
             <Region HBox.hgrow="ALWAYS"/>
             <Button onAction="#cerrarSesion" style="-fx-background-color: #b71c1c; -fx-text-fill: white; -fx-font-weight: bold;" text="CERRAR"/>
         </HBox>
