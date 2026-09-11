@@ -24,6 +24,9 @@ public class PedidoDetalle {
     @Column(name = "plato_id")
     private Long platoId;
 
+    @Column(name = "plato_nombre", insertable = false, updatable = false)
+    private String platoNombre;
+
     @Column(nullable = false)
     private Integer cantidad;
 

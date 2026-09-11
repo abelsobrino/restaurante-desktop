@@ -42,6 +42,12 @@ public class Pedido {
     @Column(name = "cliente_telefono", length = 20)
     private String clienteTelefono;
 
+    @Column(name = "mesa_numero", insertable = false, updatable = false)
+    private Integer mesaNumero;
+
+    @Column(name = "mozo_nombre", insertable = false, updatable = false)
+    private String mozoNombre;
+
     @Column(name = "direccion_entrega")
     private String direccionEntrega;
 

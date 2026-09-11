@@ -31,7 +31,74 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Component
+@org.springframework.context.annotation.Scope("prototype")
 public class CajaController {
+    @Autowired private pe.edu.utp.restaurante.service.CobroService cobroService;
+    @Autowired private pe.edu.utp.restaurante.service.ComprobanteService comprobanteService;
+    @Autowired private pe.edu.utp.restaurante.repository.UsuarioRepository usuarioRepository;
+    @FXML private javafx.scene.layout.TilePane panelMesas;
+    @FXML private ComboBox<Pedido> cmbPedidos;
+    @FXML private CheckBox chkPagados;
+    @FXML private Label lblBase, lblIgv;
+    @FXML private Button btnComprobante;
+
+    @FXML private void actualizarMesas() {
+        cargarMesas();
+        if (lstMesas.getSelectionModel().getSelectedItem() != null)
+            cargarPedidosPorMesa(lstMesas.getSelectionModel().getSelectedItem());
+    }
+
+    private void dibujarMesas() {
+        panelMesas.getChildren().clear();
+        var pendientes = pedidoRepository.findByEstado("TERMINADO");
+        for (Mesa mesa : mesas.stream().sorted(java.util.Comparator.comparing(Mesa::getNumero)).toList()) {
+            long cantidad = pendientes.stream().filter(p -> java.util.Objects.equals(p.getMesaId(), mesa.getId())).count();
+            Button boton = new Button("Mesa " + mesa.getNumero() + "\n" + (cantidad > 0 ? cantidad + " por cobrar" : "Sin cobros"));
+            boton.setPrefSize(112, 88);
+            boton.setStyle("-fx-background-color: " + (cantidad > 0 ? "#d97706" : "#475569") + "; -fx-text-fill: white; -fx-background-radius: 12; -fx-font-weight: bold; -fx-cursor: hand;");
+            boton.setOnAction(e -> { lstMesas.getSelectionModel().select(mesa); cargarPedidosPorMesa(mesa); });
+            panelMesas.getChildren().add(boton);
+        }
+    }
+
+    @FXML private void exportarComprobante() {
+        if (pedidoSeleccionado == null) return;
+        var pago = pagoRepository.findFirstByPedidoIdOrderByCreatedAtDesc(pedidoSeleccionado.getId());
+        if (pago.isEmpty()) { mostrarMensaje("Primero registra el cobro.", "error"); return; }
+        guardarComprobante(pago.get());
+    }
+
+    private void guardarComprobante(Pago pago) {
+        javafx.stage.FileChooser selector = new javafx.stage.FileChooser();
+        selector.setTitle("Guardar comprobante interno");
+        selector.setInitialFileName("LaFonda-Pago-" + pago.getId() + ".pdf");
+        selector.getExtensionFilters().add(new javafx.stage.FileChooser.ExtensionFilter("Documento PDF", "*.pdf"));
+        java.io.File archivo = selector.showSaveDialog(txtUsuario.getScene().getWindow());
+        if (archivo == null) return;
+        try {
+            comprobanteService.generar(pago, archivo.toPath());
+            ButtonType abrir = new ButtonType("Abrir PDF");
+            ButtonType imprimir = new ButtonType("Imprimir");
+            Alert aviso = new Alert(Alert.AlertType.INFORMATION, "PDF guardado. El pago ya está registrado.", abrir, imprimir, ButtonType.CLOSE);
+            var respuesta = aviso.showAndWait().orElse(ButtonType.CLOSE);
+            if (respuesta == abrir) {
+                if (java.awt.Desktop.isDesktopSupported()) java.awt.Desktop.getDesktop().open(archivo);
+                else mostrarMensaje("Abre el archivo con tu lector PDF: " + archivo, "success");
+            } else if (respuesta == imprimir) {
+                java.awt.EventQueue.invokeLater(() -> {
+                    try (var pdf = org.apache.pdfbox.pdmodel.PDDocument.load(archivo)) {
+                        java.awt.print.PrinterJob job = java.awt.print.PrinterJob.getPrinterJob();
+                        job.setPageable(new org.apache.pdfbox.printing.PDFPageable(pdf));
+                        if (job.printDialog()) job.print();
+                    } catch (Exception e) {
+                        javafx.application.Platform.runLater(() -> mostrarMensaje("No se pudo imprimir. El PDF sigue guardado y el pago no se repite.", "error"));
+                    }
+                });
+            }
+        } catch (Exception e) {
+            mostrarMensaje("El pago sigue registrado. No se pudo generar o abrir el PDF: " + e.getMessage() + ". Puedes reintentarlo con Ver pagados y PDF / imprimir.", "error");
+        }
+    }
 
     @Autowired
     private PedidoRepository pedidoRepository;
@@ -94,6 +161,20 @@ public class CajaController {
 
     @FXML
     public void initialize() {
+        pedidoSeleccionado = null;
+        detallesPedido.clear();
+        cmbPedidos.setConverter(new javafx.util.StringConverter<>() {
+            @Override public String toString(Pedido p) { return p == null ? "" : p.getCodigo() + " - " + p.getEstado() + " - S/ " + p.getTotal(); }
+            @Override public Pedido fromString(String texto) { return null; }
+        });
+        cmbPedidos.valueProperty().addListener((o, a, p) -> {
+            pedidoSeleccionado = p;
+            detallesPedido.clear();
+            lblTotal.setText("S/ 0.00"); lblBase.setText("S/ 0.00"); lblIgv.setText("S/ 0.00");
+            btnComprobante.setDisable(p == null || !"ENTREGADO".equals(p.getEstado()));
+            if (p != null) { cargarDetallePedido(p.getId()); mostrarInfoPedido(p); }
+        });
+        chkPagados.setOnAction(e -> actualizarMesas());
         System.out.println("[CAJA] Inicializando controlador...");
 
         if (cmbMetodoPago != null) {
@@ -160,8 +241,7 @@ public class CajaController {
 
         if (btnCobrar != null && tblDetallePedido != null) {
             btnCobrar.disableProperty().bind(
-                    tblDetallePedido.itemsProperty().isNull()
-                            .or(Bindings.isEmpty(tblDetallePedido.getItems()))
+                    Bindings.createBooleanBinding(() -> cmbPedidos.getValue() == null || !"TERMINADO".equals(cmbPedidos.getValue().getEstado()), cmbPedidos.valueProperty())
             );
         }
 
@@ -184,6 +264,7 @@ public class CajaController {
                 mesas.clear();
                 mesas.addAll(listaMesas);
                 lstMesas.setItems(mesas);
+                dibujarMesas();
             }
         } catch (Exception e) {
             System.err.println("[ERROR] Error al cargar mesas: " + e.getMessage());
@@ -194,8 +275,13 @@ public class CajaController {
     private void cargarPedidosPorMesa(Mesa mesa) {
         try {
             List<Pedido> pedidos = pedidoRepository.findByMesaIdAndEstado(mesa.getId(), "TERMINADO");
+            if (chkPagados.isSelected()) pedidos.addAll(pedidoRepository.findByMesaIdAndEstado(mesa.getId(), "ENTREGADO"));
+            pedidos.sort(java.util.Comparator.comparing(Pedido::getCreatedAt, java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder())));
+            cmbPedidos.setItems(FXCollections.observableArrayList(pedidos));
+            cmbPedidos.getSelectionModel().clearSelection();
             if (!pedidos.isEmpty()) {
                 pedidoSeleccionado = pedidos.get(0);
+                cmbPedidos.getSelectionModel().selectFirst();
                 cargarDetallePedido(pedidoSeleccionado.getId());
                 mostrarInfoPedido(pedidoSeleccionado);
             } else {
@@ -219,13 +305,13 @@ public class CajaController {
     private void mostrarInfoPedido(Pedido pedido) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
         if (lblMesaInfo != null) {
-            lblMesaInfo.setText("Mesa: " + pedido.getMesaId());
+            lblMesaInfo.setText(pedido.getMesaId() == null ? "Sin mesa" : mesaRepository.findById(pedido.getMesaId()).map(m -> String.valueOf(m.getNumero())).orElse("-"));
         }
         if (lblFecha != null) {
             lblFecha.setText("Fecha: " + (pedido.getCreatedAt() != null ? pedido.getCreatedAt().format(formatter) : "-"));
         }
         if (lblMozo != null) {
-            lblMozo.setText("Mozo: " + pedido.getUsuarioId());
+            lblMozo.setText(pedido.getUsuarioId() == null ? "-" : usuarioRepository.findById(pedido.getUsuarioId()).map(u -> u.getNombre() + " " + u.getApellido()).orElse("-"));
         }
         if (lblCodigo != null) {
             lblCodigo.setText("Código: " + pedido.getCodigo());
@@ -235,6 +321,9 @@ public class CajaController {
         }
         if (lblTotal != null) {
             lblTotal.setText("S/ " + pedido.getTotal().toString());
+            var importes = pe.edu.utp.restaurante.service.Importes.desdeTotal(pedido.getTotal());
+            lblBase.setText("S/ " + importes.subtotal());
+            lblIgv.setText("S/ " + importes.igv());
         }
     }
 
@@ -266,20 +355,11 @@ public class CajaController {
         }
 
         try {
-            Pago pago = new Pago();
-            pago.setPedidoId(pedidoSeleccionado.getId());
-            pago.setMonto(pedidoSeleccionado.getTotal());
-            pago.setMetodo(metodo);
-            pago.setReferencia(txtReferencia.getText().trim());
-            pago.setUsuarioId(usuarioActual.getId());
-            pago.setCreatedAt(LocalDateTime.now());
-            pagoRepository.save(pago);
-
-            pedidoSeleccionado.setEstado("ENTREGADO");
-            pedidoSeleccionado.setCerrado(true);
-            pedidoSeleccionado.setUpdatedAt(LocalDateTime.now());
-            pedidoSeleccionado.setFechaCierre(LocalDateTime.now());
-            pedidoRepository.save(pedidoSeleccionado);
+            Alert confirmar = new Alert(Alert.AlertType.CONFIRMATION, "Confirmar cobro de S/ " + pedidoSeleccionado.getTotal() + " por " + metodo + "?", ButtonType.OK, ButtonType.CANCEL);
+            if (confirmar.showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) return;
+            Pago pago = cobroService.cobrar(pedidoSeleccionado.getId(), usuarioActual.getId(), metodo, txtReferencia.getText().trim());
+            cmbPedidos.getSelectionModel().clearSelection();
+            guardarComprobante(pago);
 
             mostrarMensaje("Cobro registrado exitosamente", "success");
             detallesPedido.clear();
@@ -322,7 +402,7 @@ public class CajaController {
     }
 
     private void mostrarMensaje(String mensaje, String tipo) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        Alert alert = new Alert("error".equals(tipo) ? Alert.AlertType.ERROR : Alert.AlertType.INFORMATION);
         alert.setTitle("Mensaje");
         alert.setHeaderText(null);
         alert.setContentText(mensaje);

@@ -1,514 +1,369 @@
 package pe.edu.utp.restaurante.controller;
 
-import javafx.beans.binding.Bindings;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
+import java.math.BigDecimal;
+import java.util.*;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.collections.*;
+import javafx.fxml.*;
+import javafx.scene.*;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.layout.*;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Component;
 import pe.edu.utp.restaurante.config.ApplicationContextProvider;
-import pe.edu.utp.restaurante.model.Mesa;
-import pe.edu.utp.restaurante.model.Pedido;
-import pe.edu.utp.restaurante.model.PedidoDetalle;
-import pe.edu.utp.restaurante.model.Plato;
-import pe.edu.utp.restaurante.model.Usuario;
-import pe.edu.utp.restaurante.repository.MesaRepository;
-import pe.edu.utp.restaurante.repository.PedidoDetalleRepository;
-import pe.edu.utp.restaurante.repository.PedidoRepository;
-import pe.edu.utp.restaurante.repository.PlatoRepository;
+import pe.edu.utp.restaurante.model.*;
+import pe.edu.utp.restaurante.repository.*;
 import pe.edu.utp.restaurante.service.PedidoService;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.Optional;
 
 @Component
+@Scope("prototype")
 public class MozoController {
+    @Autowired private MesaRepository mesaRepository;
+    @Autowired private PlatoRepository platoRepository;
+    @Autowired private CategoriaRepository categoriaRepository;
+    @Autowired private PedidoRepository pedidoRepository;
+    @Autowired private PedidoService pedidoService;
 
-    @Autowired
-    private MesaRepository mesaRepository;
+    @FXML private Text txtUsuario, txtMesaSeleccionada;
+    @FXML private TilePane panelMesas;
+    @FXML private VBox panelCategorias, panelPlatos, panelCarta;
+    @FXML private Label lblCategoria, lblSubtotal;
+    @FXML private ListView<Mesa> lstMesas;
+    @FXML private ListView<Plato> lstPlatos;
+    @FXML private TextField txtBuscarPlato;
+    @FXML private Spinner<Integer> spnCantidad;
+    @FXML private TableView<PedidoDetalle> tblPedido;
+    @FXML private TextArea txtObservacion;
+    @FXML private Button btnLiberarMesa, btnAgregarPlato, btnEnviarCocina, btnTerminarPedido;
 
-    @Autowired
-    private PlatoRepository platoRepository;
-
-    @Autowired
-    private PedidoRepository pedidoRepository;
-
-    @Autowired
-    private PedidoDetalleRepository pedidoDetalleRepository;
-
-    @Autowired
-    private PedidoService pedidoService;
-
+    private final ObservableList<PedidoDetalle> vista = FXCollections.observableArrayList();
+    private final List<PedidoDetalle> enviados = new ArrayList<>();
+    private final List<PedidoDetalle> nuevos = new ArrayList<>();
+    private List<Mesa> mesas = List.of();
+    private List<Plato> platos = List.of();
+    private List<Categoria> categorias = List.of();
     private Usuario usuarioActual;
     private Mesa mesaSeleccionada;
-    private Pedido pedidoActualEnBD;
-    private ObservableList<Mesa> mesas = FXCollections.observableArrayList();
-    private ObservableList<Plato> platos = FXCollections.observableArrayList();
-    private ObservableList<Plato> platosFiltrados = FXCollections.observableArrayList();
-    private ObservableList<PedidoDetalle> pedidoActual = FXCollections.observableArrayList();
+    private Pedido cuenta;
+    private Long categoriaId;
+    private boolean sinCategoria, ocupado, requiereRevision;
 
-    @FXML
-    private Text txtUsuario;
-
-    @FXML
-    private Text txtMesaSeleccionada;
-
-    @FXML
-    private ListView<Mesa> lstMesas;
-
-    @FXML
-    private ListView<Plato> lstPlatos;
-
-    @FXML
-    private TextField txtBuscarPlato;
-
-    @FXML
-    private Spinner<Integer> spnCantidad;
-
-    @FXML
-    private TableView<PedidoDetalle> tblPedido;
-
-    @FXML
-    private Label lblSubtotal;
-
-    @FXML
-    private TextArea txtObservacion;
-
-    @FXML
-    private Button btnLiberarMesa;
-
-    @FXML
-    private Button btnAgregarPlato;
-
-    @FXML
-    private Button btnEnviarCocina;
-
-    @FXML
-    private Button btnTerminarPedido;
-
-    @FXML
-    public void initialize() {
-        spnCantidad.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 20, 1));
-
-        lstMesas.setCellFactory(lv -> new ListCell<Mesa>() {
-            @Override
-            protected void updateItem(Mesa mesa, boolean empty) {
-                super.updateItem(mesa, empty);
-                if (empty || mesa == null) {
-                    setText(null);
-                } else {
-                    String estado = mesa.getEstado() != null ? mesa.getEstado() : "DISPONIBLE";
-                    setText("Mesa " + mesa.getNumero() + " - " + estado);
-                    if ("OCUPADA".equals(estado)) {
-                        setStyle("-fx-text-fill: #c62828; -fx-font-weight: bold;");
-                    } else if ("RESERVADA".equals(estado)) {
-                        setStyle("-fx-text-fill: #e65100;");
-                    } else {
-                        setStyle("-fx-text-fill: #2e7d32; -fx-font-weight: bold;");
-                    }
-                }
+    @FXML public void initialize() {
+        spnCantidad.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 100, 1));
+        spnCantidad.setEditable(false);
+        txtObservacion.setPromptText("Observación SOLO para el nuevo envío (máximo 255 caracteres)");
+        btnEnviarCocina.setText("ENVIAR SOLO NUEVOS");
+        btnTerminarPedido.setText("MANDAR CUENTA A CAJA");
+        btnLiberarMesa.setText("ANULAR CUENTA / LIBERAR");
+        lstPlatos.setCellFactory(l -> new ListCell<>() {
+            @Override protected void updateItem(Plato p, boolean empty) {
+                super.updateItem(p, empty);
+                setText(empty || p == null ? null : p.getNombre() + " — S/ " + p.getPrecio()
+                        + (p.getDescripcion() == null ? "" : "\n" + p.getDescripcion()));
+                setWrapText(true);
             }
         });
-
-        lstMesas.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
-            if (newVal != null) {
-                mesaSeleccionada = newVal;
-                txtMesaSeleccionada.setText("Mesa: " + newVal.getNumero() + " (" + newVal.getEstado() + ")");
-                cargarPedidoExistente(newVal);
-            }
+        txtBuscarPlato.textProperty().addListener((o, a, b) -> filtrarPlatos());
+        configurarTabla();
+        try { cargarCatalogos(); } catch (Exception e) { error(e); }
+        volverCategorias();
+        refrescarVista();
+        txtUsuario.sceneProperty().addListener((o, a, scene) -> {
+            if (scene != null) scene.windowProperty().addListener((w, antes, ventana) -> {
+                if (ventana != null) ventana.addEventHandler(javafx.stage.WindowEvent.WINDOW_CLOSE_REQUEST,
+                        e -> { if (!confirmarSalida()) e.consume(); });
+            });
         });
-
-        lstPlatos.setCellFactory(lv -> new ListCell<Plato>() {
-            @Override
-            protected void updateItem(Plato plato, boolean empty) {
-                super.updateItem(plato, empty);
-                if (empty || plato == null) {
-                    setText(null);
-                } else {
-                    setText(plato.getNombre() + " - S/ " + plato.getPrecio());
-                }
-            }
-        });
-
-        TableColumn<PedidoDetalle, String> colPlato = new TableColumn<>("Plato");
-        colPlato.setCellValueFactory(cellData -> {
-            String nombre = platoRepository.findById(cellData.getValue().getPlatoId())
-                    .map(Plato::getNombre)
-                    .orElse("Desconocido");
-            return javafx.beans.binding.Bindings.createStringBinding(() -> nombre);
-        });
-        colPlato.setPrefWidth(150);
-
-        TableColumn<PedidoDetalle, Integer> colCantidad = new TableColumn<>("Cant.");
-        colCantidad.setCellValueFactory(new PropertyValueFactory<>("cantidad"));
-        colCantidad.setPrefWidth(60);
-
-        TableColumn<PedidoDetalle, BigDecimal> colPrecio = new TableColumn<>("Precio");
-        colPrecio.setCellValueFactory(new PropertyValueFactory<>("precioUnitario"));
-        colPrecio.setPrefWidth(80);
-
-        TableColumn<PedidoDetalle, BigDecimal> colSubtotal = new TableColumn<>("Subtotal");
-        colSubtotal.setCellValueFactory(new PropertyValueFactory<>("subtotal"));
-        colSubtotal.setPrefWidth(80);
-
-        TableColumn<PedidoDetalle, Void> colAccion = new TableColumn<>("Accion");
-        colAccion.setCellFactory(param -> new TableCell<>() {
-            private final Button btnEliminar = new Button("X");
-            {
-                btnEliminar.setStyle("-fx-background-color: #b71c1c; -fx-text-fill: white; -fx-font-weight: bold;");
-                btnEliminar.setOnAction(event -> {
-                    PedidoDetalle detalle = getTableView().getItems().get(getIndex());
-                    pedidoActual.remove(detalle);
-                    actualizarSubtotal();
-                });
-            }
-            @Override
-            protected void updateItem(Void item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty) {
-                    setGraphic(null);
-                } else {
-                    setGraphic(btnEliminar);
-                }
-            }
-        });
-        colAccion.setPrefWidth(60);
-
-        tblPedido.getColumns().clear();
-        tblPedido.getColumns().addAll(colPlato, colCantidad, colPrecio, colSubtotal, colAccion);
-        tblPedido.setItems(pedidoActual);
-
-        cargarMesas();
-        cargarPlatos();
-
-        txtBuscarPlato.textProperty().addListener((obs, oldVal, newVal) -> filtrarPlatos());
-
-        btnAgregarPlato.disableProperty().bind(lstMesas.getSelectionModel().selectedItemProperty().isNull());
-
-        btnEnviarCocina.disableProperty().bind(
-                lstMesas.getSelectionModel().selectedItemProperty().isNull()
-                        .or(Bindings.isEmpty(tblPedido.getItems()))
-        );
-
-        btnTerminarPedido.disableProperty().bind(
-                lstMesas.getSelectionModel().selectedItemProperty().isNull()
-                        .or(Bindings.isEmpty(tblPedido.getItems()))
-        );
     }
 
     public void setUsuario(Usuario usuario) {
-        this.usuarioActual = usuario;
-        txtUsuario.setText("Usuario: " + usuario.getNombre() + " " + usuario.getApellido() + " (DNI: " + usuario.getDni() + ")");
+        usuarioActual = usuario;
+        txtUsuario.setText(usuario.getNombre() + " " + usuario.getApellido());
     }
 
-    private void cargarMesas() {
-        mesas.setAll(mesaRepository.findAll());
-        lstMesas.setItems(mesas);
-    }
-
-    private void cargarPlatos() {
-        platos.setAll(platoRepository.findByDisponibleTrue());
-        lstPlatos.setItems(platos);
-    }
-
-    @FXML
-    private void filtrarPlatos() {
-        String filtro = txtBuscarPlato.getText().toLowerCase();
-        if (filtro.isEmpty()) {
-            lstPlatos.setItems(platos);
-        } else {
-            platosFiltrados.setAll(platos.stream()
-                    .filter(p -> p.getNombre().toLowerCase().contains(filtro))
-                    .toList());
-            lstPlatos.setItems(platosFiltrados);
-        }
-    }
-
-    @FXML
-    private void liberarMesa() {
-        if (mesaSeleccionada == null) {
-            mostrarAlerta("Error", "Seleccione una mesa", Alert.AlertType.ERROR);
-            return;
-        }
-
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Liberar Mesa");
-        confirm.setHeaderText("Esta seguro de liberar la mesa " + mesaSeleccionada.getNumero() + "?");
-        confirm.setContentText("Esto cancelara el pedido actual");
-
-        confirm.showAndWait().ifPresent(response -> {
-            if (response == ButtonType.OK) {
-                if (pedidoActualEnBD != null && !pedidoActualEnBD.getEstado().equals("ENTREGADO")) {
-                    pedidoActualEnBD.setEstado("CANCELADO");
-                    pedidoActualEnBD.setCerrado(true);
-                    pedidoRepository.save(pedidoActualEnBD);
+    private void configurarTabla() {
+        TableColumn<PedidoDetalle, String> nombre = new TableColumn<>("Producto");
+        nombre.setCellValueFactory(c -> new SimpleStringProperty(nombrePlato(c.getValue())));
+        nombre.setPrefWidth(175);
+        TableColumn<PedidoDetalle, Integer> cantidad = new TableColumn<>("Cant.");
+        cantidad.setCellValueFactory(new PropertyValueFactory<>("cantidad"));
+        cantidad.setPrefWidth(50);
+        TableColumn<PedidoDetalle, BigDecimal> precio = new TableColumn<>("P. unit.");
+        precio.setCellValueFactory(new PropertyValueFactory<>("precioUnitario"));
+        TableColumn<PedidoDetalle, BigDecimal> importe = new TableColumn<>("Importe");
+        importe.setCellValueFactory(new PropertyValueFactory<>("subtotal"));
+        TableColumn<PedidoDetalle, String> estado = new TableColumn<>("Estado");
+        estado.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getId() == null
+                ? "NUEVO" : "LISTO".equals(c.getValue().getEstado()) ? "LISTO" : "ENVIADO"));
+        estado.setPrefWidth(90);
+        TableColumn<PedidoDetalle, Void> quitar = new TableColumn<>("");
+        quitar.setPrefWidth(45);
+        quitar.setCellFactory(c -> new TableCell<>() {
+            private final Button boton = new Button("X");
+            {
+                boton.setOnAction(e -> {
+                    if (getIndex() < 0 || getIndex() >= vista.size()) return;
+                    PedidoDetalle d = vista.get(getIndex());
+                    if (d.getId() == null && !requiereRevision) { nuevos.remove(d); refrescarVista(); }
+                });
+            }
+            @Override protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                boolean editable = !empty && getIndex() >= 0 && getIndex() < vista.size()
+                        && vista.get(getIndex()).getId() == null && !requiereRevision;
+                setGraphic(editable ? boton : null);
+            }
+        });
+        tblPedido.getColumns().setAll(nombre, cantidad, precio, importe, estado, quitar);
+        tblPedido.setItems(vista);
+        tblPedido.setPlaceholder(new Label("Selecciona una mesa y agrega productos."));
+        tblPedido.setRowFactory(t -> new TableRow<>() {
+            @Override protected void updateItem(PedidoDetalle d, boolean empty) {
+                super.updateItem(d, empty);
+                setOpacity(1);
+                setStyle("");
+                if (!empty && d != null) {
+                    if (d.getId() != null) {
+                        setStyle("-fx-background-color: #e5e7eb;");
+                        setOpacity(0.55);
+                    } else {
+                        setStyle("-fx-background-color: #dcfce7; -fx-font-weight: bold;");
+                    }
                 }
-                mesaSeleccionada.setEstado("DISPONIBLE");
-                mesaRepository.save(mesaSeleccionada);
-                pedidoActual.clear();
-                pedidoActualEnBD = null;
-                actualizarSubtotal();
-                cargarMesas();
-                txtMesaSeleccionada.setText("Mesa: Ninguna");
-                mesaSeleccionada = null;
-                mostrarAlerta("Exito", "Mesa liberada correctamente", Alert.AlertType.INFORMATION);
             }
         });
     }
 
-    @FXML
-    private void agregarPlato() {
-        Plato plato = lstPlatos.getSelectionModel().getSelectedItem();
-        if (plato == null) {
-            mostrarAlerta("Error", "Seleccione un plato", Alert.AlertType.ERROR);
-            return;
+    private String nombrePlato(PedidoDetalle d) {
+        if (d.getPlatoNombre() != null) return d.getPlatoNombre();
+        return platos.stream().filter(p -> Objects.equals(p.getId(), d.getPlatoId()))
+                .map(Plato::getNombre).findFirst().orElse("Producto " + d.getPlatoId());
+    }
+
+    private void cargarCatalogos() {
+        mesas = mesaRepository.findAll().stream().sorted(Comparator.comparing(Mesa::getNumero)).toList();
+        platos = platoRepository.findAll();
+        categorias = categoriaRepository.findAll().stream().sorted(Comparator.comparing(Categoria::getNombre)).toList();
+        dibujarMesas();
+        panelCategorias.getChildren().clear();
+        String[] colores = {"#d97706", "#2563eb", "#9333ea", "#dc2626", "#16803c", "#475569"};
+        int i = 0;
+        for (Categoria c : categorias) {
+            long disponibles = platos.stream().filter(p -> Boolean.TRUE.equals(p.getDisponible())
+                    && Objects.equals(p.getCategoriaId(), c.getId())).count();
+            agregarCategoria(c.getId(), c.getNombre() + " (" + disponibles + ")", false, colores[i++ % colores.length]);
         }
+        Set<Long> ids = new HashSet<>(categorias.stream().map(Categoria::getId).toList());
+        if (platos.stream().anyMatch(p -> Boolean.TRUE.equals(p.getDisponible()) && !ids.contains(p.getCategoriaId())))
+            agregarCategoria(null, "SIN CATEGORÍA", true, "#475569");
+        if (panelCategorias.getChildren().isEmpty()) panelCategorias.getChildren().add(new Label("No hay categorías."));
+    }
 
-        if (mesaSeleccionada == null) {
-            mostrarAlerta("Error", "Seleccione una mesa primero", Alert.AlertType.ERROR);
-            return;
-        }
+    private void agregarCategoria(Long id, String nombre, boolean otros, String color) {
+        Button b = new Button(nombre);
+        b.setMaxWidth(Double.MAX_VALUE); b.setMinHeight(56); b.setWrapText(true);
+        b.setStyle("-fx-background-color: " + color + "; -fx-text-fill: white; -fx-font-size: 17; -fx-font-weight: bold; -fx-background-radius: 10;");
+        b.setOnAction(e -> {
+            categoriaId = id; sinCategoria = otros; lblCategoria.setText(nombre);
+            panelCategorias.setVisible(false); panelCategorias.setManaged(false);
+            panelPlatos.setVisible(true); panelPlatos.setManaged(true);
+            txtBuscarPlato.clear(); filtrarPlatos();
+        });
+        panelCategorias.getChildren().add(b);
+    }
 
-        int cantidad = spnCantidad.getValue();
+    @FXML private void volverCategorias() {
+        panelCategorias.setVisible(true); panelCategorias.setManaged(true);
+        panelPlatos.setVisible(false); panelPlatos.setManaged(false);
+        txtBuscarPlato.clear(); lstPlatos.getSelectionModel().clearSelection();
+    }
 
-        for (PedidoDetalle detalle : pedidoActual) {
-            if (detalle.getPlatoId().equals(plato.getId())) {
-                detalle.setCantidad(detalle.getCantidad() + cantidad);
-                detalle.setSubtotal(detalle.getPrecioUnitario().multiply(BigDecimal.valueOf(detalle.getCantidad())));
-                actualizarSubtotal();
-                return;
-            }
-        }
+    @FXML private void filtrarPlatos() {
+        String texto = txtBuscarPlato.getText().toLowerCase(Locale.ROOT);
+        Set<Long> ids = new HashSet<>(categorias.stream().map(Categoria::getId).toList());
+        lstPlatos.setItems(FXCollections.observableArrayList(platos.stream()
+                .filter(p -> Boolean.TRUE.equals(p.getDisponible()))
+                .filter(p -> sinCategoria ? !ids.contains(p.getCategoriaId()) : Objects.equals(categoriaId, p.getCategoriaId()))
+                .filter(p -> p.getNombre().toLowerCase(Locale.ROOT).contains(texto)).toList()));
+        lstPlatos.setPlaceholder(new Label("No hay platos disponibles."));
+    }
 
-        PedidoDetalle detalle = new PedidoDetalle();
-        detalle.setPlatoId(plato.getId());
-        detalle.setCantidad(cantidad);
-        detalle.setPrecioUnitario(plato.getPrecio());
-        detalle.setSubtotal(plato.getPrecio().multiply(BigDecimal.valueOf(cantidad)));
-        detalle.setEstado("PENDIENTE");
-        detalle.setCreatedAt(LocalDateTime.now());
-        pedidoActual.add(detalle);
-        actualizarSubtotal();
-
-        if (!"OCUPADA".equals(mesaSeleccionada.getEstado())) {
-            mesaSeleccionada.setEstado("OCUPADA");
-            mesaRepository.save(mesaSeleccionada);
-            cargarMesas();
+    private void dibujarMesas() {
+        panelMesas.getChildren().clear();
+        for (Mesa m : mesas) {
+            Button b = new Button(m.getNumero() + "\n" + m.getEstado());
+            b.setPrefSize(96, 86); b.setWrapText(true);
+            boolean seleccion = mesaSeleccionada != null && m.getId().equals(mesaSeleccionada.getId());
+            String color = "OCUPADA".equals(m.getEstado()) ? "#0284c7" : "RESERVADA".equals(m.getEstado()) ? "#7c3aed" : "#d97706";
+            b.setStyle("-fx-background-color: " + color + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 12; -fx-border-radius: 12; -fx-border-width: 3; -fx-border-color: " + (seleccion ? "#0f172a" : "transparent") + ";");
+            b.setOnAction(e -> seleccionarMesa(m));
+            panelMesas.getChildren().add(b);
         }
     }
 
-    @FXML
-    protected void enviarCocina() {
-        if (pedidoActual.isEmpty()) {
-            mostrarAlerta("Error", "El pedido esta vacio", Alert.AlertType.ERROR);
-            return;
+    private void seleccionarMesa(Mesa mesa) {
+        if (ocupado) return;
+        if (!nuevos.isEmpty() || requiereRevision) {
+            aviso("Envía o descarta los nuevos productos antes de cambiar de mesa."); return;
         }
-
-        if (mesaSeleccionada == null) {
-            mostrarAlerta("Error", "Seleccione una mesa", Alert.AlertType.ERROR);
-            return;
-        }
-
         try {
-            if (pedidoActualEnBD == null) {
-                pedidoActualEnBD = new Pedido();
-                pedidoActualEnBD.setCodigo(generarCodigoPedido());
-                pedidoActualEnBD.setTipo("LOCAL");
-                pedidoActualEnBD.setMesaId(mesaSeleccionada.getId());
-                pedidoActualEnBD.setUsuarioId(usuarioActual.getId());
-                pedidoActualEnBD.setCreatedAt(LocalDateTime.now());
+            if (!pedidoRepository.findByMesaIdAndEstado(mesa.getId(), "TERMINADO").isEmpty()) {
+                aviso("Esta mesa ya está en caja. Primero debe cobrarse."); return;
             }
+            mesaSeleccionada = mesa;
+            cargarCuenta();
+            txtObservacion.clear();
+            volverCategorias(); dibujarMesas(); refrescarVista();
+        } catch (Exception e) { limpiarSeleccion(); error(e); }
+    }
 
-            pedidoActualEnBD.setObservacionExtra(txtObservacion.getText());
-            pedidoActualEnBD.setEstado("EN_PROCESO");
-            pedidoActualEnBD.setCerrado(false);
-            pedidoActualEnBD.setUpdatedAt(LocalDateTime.now());
+    private void cargarCuenta() {
+        cuenta = pedidoRepository.findFirstByMesaIdAndEstadoInOrderByCreatedAtDesc(
+                mesaSeleccionada.getId(), List.of("PENDIENTE", "EN_PROCESO", "LISTO")).orElse(null);
+        List<PedidoDetalle> detalle = cuenta == null ? List.of() : pedidoService.consultarDetalle(cuenta.getId());
+        enviados.clear(); enviados.addAll(detalle);
+        txtMesaSeleccionada.setText("Mesa: " + mesaSeleccionada.getNumero());
+    }
 
-            BigDecimal subtotal = pedidoActual.stream()
-                    .map(PedidoDetalle::getSubtotal)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-            pedidoActualEnBD.setSubtotal(subtotal);
-            pedidoActualEnBD.setTotal(subtotal);
+    @FXML private void agregarPlato() {
+        if (mesaSeleccionada == null || requiereRevision || ocupado) return;
+        Plato p = lstPlatos.getSelectionModel().getSelectedItem();
+        if (p == null) { aviso("Selecciona un producto."); return; }
+        int cantidad = spnCantidad.getValue();
+        PedidoDetalle d = nuevos.stream().filter(x -> x.getPlatoId().equals(p.getId())).findFirst().orElse(null);
+        if (d == null) {
+            d = new PedidoDetalle();
+            d.setPlatoId(p.getId()); d.setCantidad(0); d.setPrecioUnitario(p.getPrecio());
+            nuevos.add(d);
+        }
+        d.setCantidad(d.getCantidad() + cantidad);
+        d.setSubtotal(d.getPrecioUnitario().multiply(BigDecimal.valueOf(d.getCantidad())));
+        refrescarVista();
+    }
 
-            for (PedidoDetalle detalle : pedidoActual) {
-                detalle.setCreatedAt(LocalDateTime.now());
-            }
+    @FXML protected void enviarCocina() {
+        if (ocupado || requiereRevision || nuevos.isEmpty() || mesaSeleccionada == null) return;
+        if (usuarioActual == null) { aviso("Inicia sesión como mozo."); return; }
+        if (txtObservacion.getText().length() > 255) { aviso("La observación admite 255 caracteres."); return; }
+        ocupado = true; refrescarVista();
+        try {
+            Pedido solicitud = new Pedido();
+            solicitud.setId(cuenta == null ? null : cuenta.getId());
+            solicitud.setMesaId(mesaSeleccionada.getId());
+            solicitud.setUsuarioId(usuarioActual.getId());
+            solicitud.setObservacionExtra(txtObservacion.getText());
+            cuenta = pedidoService.guardarPedidoConDetalles(solicitud, List.copyOf(nuevos));
+            nuevos.clear(); txtObservacion.clear();
+            enviados.clear();
+            enviados.addAll(pedidoService.consultarDetalle(cuenta.getId()));
+            mesas = mesaRepository.findAll().stream().sorted(Comparator.comparing(Mesa::getNumero)).toList();
+            dibujarMesas();
+            aviso("Solo los productos nuevos fueron enviados. Los anteriores siguen en la cuenta.");
+        } catch (DataAccessException e) {
+            requiereRevision = true;
+            aviso("No se pudo confirmar el resultado. Pulsa ACTUALIZAR MESAS Y CARTA para comprobar lo guardado antes de reenviar.");
+        } catch (Exception e) { error(e); }
+        finally { ocupado = false; refrescarVista(); }
+    }
 
-            pedidoActualEnBD = pedidoService.guardarPedidoConDetalles(pedidoActualEnBD, pedidoActual);
+    @FXML protected void terminarPedido() {
+        if (!nuevos.isEmpty()) { aviso("Primero envía los nuevos productos a cocina o descártalos."); return; }
+        if (requiereRevision || ocupado || cuenta == null) return;
+        if (!confirmar("Enviar la cuenta acumulada de la mesa a caja?")) return;
+        try {
+            pedidoService.terminarCuenta(cuenta.getId());
+            limpiarSeleccion(); cargarCatalogos();
+            aviso("Caja recibirá todo el consumo acumulado de la mesa.");
+        } catch (Exception e) { error(e); }
+    }
 
-            mostrarAlerta("Exito", "Pedido enviado a cocina", Alert.AlertType.INFORMATION);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            mostrarAlerta("Error", "Error al enviar pedido: " + e.getMessage(), Alert.AlertType.ERROR);
+    @FXML private void cancelarPedido() {
+        if (requiereRevision) { aviso("Primero pulsa ACTUALIZAR para verificar el envío."); return; }
+        if (nuevos.isEmpty()) { aviso("No hay productos nuevos que descartar. Los enviados se conservan."); return; }
+        if (confirmar("Descartar únicamente los productos nuevos sin enviar?")) {
+            nuevos.clear(); txtObservacion.clear(); refrescarVista();
         }
     }
 
-    @FXML
-    protected void terminarPedido() {
-        if (pedidoActual.isEmpty()) {
-            mostrarAlerta("Error", "El pedido esta vacio", Alert.AlertType.ERROR);
-            return;
-        }
-
-        if (mesaSeleccionada == null) {
-            mostrarAlerta("Error", "Seleccione una mesa", Alert.AlertType.ERROR);
-            return;
-        }
-
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Terminar Pedido");
-        confirm.setHeaderText("Terminar pedido de la Mesa " + mesaSeleccionada.getNumero() + "?");
-        confirm.setContentText("El pedido sera enviado a CAJA para el cobro.");
-
-        confirm.showAndWait().ifPresent(response -> {
-            if (response == ButtonType.OK) {
-                try {
-                    if (pedidoActualEnBD == null) {
-                        pedidoActualEnBD = new Pedido();
-                        pedidoActualEnBD.setCodigo(generarCodigoPedido());
-                        pedidoActualEnBD.setTipo("LOCAL");
-                        pedidoActualEnBD.setMesaId(mesaSeleccionada.getId());
-                        pedidoActualEnBD.setUsuarioId(usuarioActual.getId());
-                        pedidoActualEnBD.setCreatedAt(LocalDateTime.now());
-                    }
-
-                    pedidoActualEnBD.setObservacionExtra(txtObservacion.getText());
-                    pedidoActualEnBD.setEstado("TERMINADO");
-                    pedidoActualEnBD.setCerrado(true);
-                    pedidoActualEnBD.setUpdatedAt(LocalDateTime.now());
-                    pedidoActualEnBD.setFechaCierre(LocalDateTime.now());
-
-                    BigDecimal subtotal = pedidoActual.stream()
-                            .map(PedidoDetalle::getSubtotal)
-                            .reduce(BigDecimal.ZERO, BigDecimal::add);
-                    pedidoActualEnBD.setSubtotal(subtotal);
-                    pedidoActualEnBD.setTotal(subtotal);
-
-                    for (PedidoDetalle detalle : pedidoActual) {
-                        detalle.setCreatedAt(LocalDateTime.now());
-                    }
-
-                    pedidoActualEnBD = pedidoService.guardarPedidoConDetalles(pedidoActualEnBD, pedidoActual);
-
-                    mesaSeleccionada.setEstado("DISPONIBLE");
-                    mesaRepository.save(mesaSeleccionada);
-
-                    pedidoActual.clear();
-                    pedidoActualEnBD = null;
-                    actualizarSubtotal();
-                    txtObservacion.clear();
-                    cargarMesas();
-                    txtMesaSeleccionada.setText("Mesa: Ninguna");
-                    mesaSeleccionada = null;
-
-                    mostrarAlerta("Exito", "Pedido enviado a CAJA para el cobro", Alert.AlertType.INFORMATION);
-
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    mostrarAlerta("Error", "Error al terminar pedido: " + e.getMessage(), Alert.AlertType.ERROR);
-                }
-            }
-        });
+    @FXML private void liberarMesa() {
+        if (mesaSeleccionada == null || requiereRevision || ocupado) return;
+        if (cuenta == null) { cancelarPedido(); return; }
+        if (!confirmar("ANULAR TODA la cuenta de esta mesa, incluidos sus consumos enviados? No uses esta opción para quitar un adicional.")) return;
+        try {
+            pedidoService.cancelarPedido(cuenta.getId());
+            limpiarSeleccion(); cargarCatalogos();
+        } catch (Exception e) { error(e); }
     }
 
-    @FXML
-    private void cancelarPedido() {
-        if (pedidoActual.isEmpty()) {
-            return;
-        }
-
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Cancelar Pedido");
-        confirm.setHeaderText("Cancelar el pedido actual?");
-        confirm.setContentText("Se eliminaran todos los platos agregados.");
-
-        confirm.showAndWait().ifPresent(response -> {
-            if (response == ButtonType.OK) {
-                pedidoActual.clear();
-                actualizarSubtotal();
-                txtObservacion.clear();
-                if (pedidoActualEnBD != null && !pedidoActualEnBD.getEstado().equals("ENTREGADO")) {
-                    pedidoActualEnBD.setEstado("CANCELADO");
-                    pedidoActualEnBD.setCerrado(true);
-                    pedidoRepository.save(pedidoActualEnBD);
-                    pedidoActualEnBD = null;
-                }
-                mostrarAlerta("Informacion", "Pedido cancelado", Alert.AlertType.INFORMATION);
+    @FXML private void actualizarCarta() {
+        if (ocupado) return;
+        if (!nuevos.isEmpty() && !requiereRevision) { aviso("Envía o descarta los nuevos antes de actualizar."); return; }
+        try {
+            if (requiereRevision) {
+                if (!confirmar("Consultar la cuenta guardada y descartar el borrador local para evitar duplicados?")) return;
+                nuevos.clear();
             }
-        });
+            cargarCatalogos();
+            if (mesaSeleccionada != null) {
+                if (!pedidoRepository.findByMesaIdAndEstado(mesaSeleccionada.getId(), "TERMINADO").isEmpty()) limpiarSeleccion();
+                else cargarCuenta();
+            }
+            requiereRevision = false;
+            volverCategorias(); refrescarVista();
+        } catch (Exception e) { requiereRevision = true; refrescarVista(); error(e); }
     }
 
-    @FXML
-    private void regresar() {
+    private void limpiarSeleccion() {
+        cuenta = null; mesaSeleccionada = null;
+        enviados.clear(); nuevos.clear(); txtObservacion.clear();
+        txtMesaSeleccionada.setText("Mesa: Ninguna");
+        volverCategorias(); refrescarVista(); dibujarMesas();
+    }
+
+    private void refrescarVista() {
+        vista.setAll(enviados); vista.addAll(nuevos); tblPedido.refresh();
+        BigDecimal total = vista.stream().map(PedidoDetalle::getSubtotal).reduce(BigDecimal.ZERO, BigDecimal::add);
+        lblSubtotal.setText("S/ " + total.setScale(2));
+        boolean bloqueado = ocupado || requiereRevision || mesaSeleccionada == null;
+        panelCarta.setDisable(bloqueado);
+        txtObservacion.setDisable(bloqueado);
+        btnAgregarPlato.setDisable(bloqueado);
+        btnEnviarCocina.setDisable(bloqueado || nuevos.isEmpty());
+        btnTerminarPedido.setDisable(bloqueado || cuenta == null || !nuevos.isEmpty());
+        btnLiberarMesa.setDisable(bloqueado || cuenta == null);
+    }
+
+    private boolean confirmarSalida() {
+        return nuevos.isEmpty() && !requiereRevision || confirmar("Salir? Los productos enviados seguirán guardados; el borrador local se perderá.");
+    }
+    @FXML private void regresar() {
+        if (!confirmarSalida()) return;
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/PanelPrincipalView.fxml"));
             loader.setControllerFactory(ApplicationContextProvider.getApplicationContext()::getBean);
-            Parent root = loader.load();
-
-            Stage stage = new Stage();
-            stage.setTitle("Restaurante UTP");
-            stage.setScene(new Scene(root, 450, 480));
-            stage.setMaximized(true);
-            stage.show();
-
-            Stage currentStage = (Stage) txtUsuario.getScene().getWindow();
-            currentStage.close();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+            Stage stage = new Stage(); stage.setScene(new Scene(loader.load(), 450, 480));
+            stage.setTitle("Restaurante La Fonda"); stage.show();
+            ((Stage) txtUsuario.getScene().getWindow()).close();
+        } catch (Exception e) { error(e); }
     }
-
-    private void cargarPedidoExistente(Mesa mesa) {
-        Optional<Pedido> pedidoOpt = pedidoRepository.findByMesaIdAndEstadoNot(mesa.getId(), "ENTREGADO");
-        if (pedidoOpt.isPresent()) {
-            pedidoActualEnBD = pedidoOpt.get();
-            List<PedidoDetalle> detalles = pedidoDetalleRepository.findByPedidoId(pedidoActualEnBD.getId());
-            pedidoActual.clear();
-            pedidoActual.addAll(detalles);
-            actualizarSubtotal();
-            txtObservacion.setText(pedidoActualEnBD.getObservacionExtra());
-        } else {
-            pedidoActualEnBD = null;
-            pedidoActual.clear();
-            actualizarSubtotal();
-            txtObservacion.clear();
-        }
+    @FXML private void cerrarSesion() {
+        if (confirmarSalida()) ((Stage) txtUsuario.getScene().getWindow()).close();
     }
-
-    private String generarCodigoPedido() {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
-        return "PED-" + LocalDateTime.now().format(formatter);
+    private boolean confirmar(String texto) {
+        return new Alert(Alert.AlertType.CONFIRMATION, texto, ButtonType.OK, ButtonType.CANCEL)
+                .showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK;
     }
-
-    private void actualizarSubtotal() {
-        BigDecimal total = pedidoActual.stream()
-                .map(PedidoDetalle::getSubtotal)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        lblSubtotal.setText("S/ " + total.toString());
+    private void aviso(String texto) {
+        Alert a = new Alert(Alert.AlertType.INFORMATION, texto, ButtonType.OK);
+        a.setHeaderText(null); a.showAndWait();
     }
-
-    private void mostrarAlerta(String titulo, String mensaje, Alert.AlertType tipo) {
-        Alert alert = new Alert(tipo);
-        alert.setTitle(titulo);
-        alert.setHeaderText(null);
-        alert.setContentText(mensaje);
-        alert.showAndWait();
-    }
-
-    @FXML
-    private void cerrarSesion() {
-        Stage stage = (Stage) txtUsuario.getScene().getWindow();
-        stage.close();
+    private void error(Exception e) {
+        aviso(e instanceof IllegalArgumentException || e instanceof IllegalStateException
+                ? e.getMessage() : "No se pudo completar la operación. Comprueba la conexión y actualiza.");
     }
 }

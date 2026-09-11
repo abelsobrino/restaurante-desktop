@@ -71,6 +71,16 @@ public class LoginController {
 
     @FXML
     public void handleLogin() {
+        try {
+            realizarLogin();
+        } catch (org.springframework.dao.DataAccessException e) {
+            mostrarError("No se pudo conectar con la base de datos. Intenta nuevamente.");
+        } catch (IllegalArgumentException e) {
+            mostrarError("Credenciales no válidas.");
+        }
+    }
+
+    private void realizarLogin() {
         String dni = txtDni.getText().trim();
 
         if (dni.isEmpty()) {
@@ -85,6 +95,10 @@ public class LoginController {
 
         usuarioService.buscarPorDni(dni).ifPresentOrElse(
                 usuario -> {
+                    if (!Boolean.TRUE.equals(usuario.getActivo())) {
+                        mostrarError("Este trabajador está inactivo. Consulta al administrador.");
+                        return;
+                    }
                     if (!usuario.getRol().equals(rolSeleccionado)) {
                         mostrarError("Este DNI no corresponde al rol seleccionado");
                         return;
@@ -96,7 +110,7 @@ public class LoginController {
                         return;
                     }
 
-                    String password = txtPassword.getText().trim();
+                    String password = txtPassword.getText();
                     if (password.isEmpty()) {
                         mostrarError("Ingrese su clave");
                         return;

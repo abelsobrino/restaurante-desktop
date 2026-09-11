@@ -15,7 +15,9 @@ public class RestauranteApplication extends Application {
     private static ConfigurableApplicationContext springContext;
 
     public static void main(String[] args) {
-        springContext = SpringApplication.run(RestauranteApplication.class, args);
+        SpringApplication app = new SpringApplication(RestauranteApplication.class);
+        app.setHeadless(false);
+        springContext = app.run(args);
         launch(args);
     }
 

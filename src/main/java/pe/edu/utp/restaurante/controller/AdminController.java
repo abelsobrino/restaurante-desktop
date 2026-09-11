@@ -30,7 +30,31 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Component
+@org.springframework.context.annotation.Scope("prototype")
 public class AdminController {
+    @Autowired private pe.edu.utp.restaurante.service.UsuarioService personalService;
+    @Autowired private pe.edu.utp.restaurante.repository.PagoRepository pagoRepository;
+    @FXML private TableView<pe.edu.utp.restaurante.model.Pago> tblVentas;
+    @FXML private ListView<String> lstMasVendidos;
+    @FXML private Label lblActualizacion;
+
+    private void configurarVentas() {
+        TableColumn<pe.edu.utp.restaurante.model.Pago, String> fecha = new TableColumn<>("Fecha de pago");
+        fecha.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(c.getValue().getCreatedAt() == null ? "-" : c.getValue().getCreatedAt().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM HH:mm"))));
+        fecha.setPrefWidth(130);
+        TableColumn<pe.edu.utp.restaurante.model.Pago, String> codigo = new TableColumn<>("Pedido");
+        codigo.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(pedidoRepository.findById(c.getValue().getPedidoId()).map(Pedido::getCodigo).orElse("-")));
+        codigo.setPrefWidth(180);
+        TableColumn<pe.edu.utp.restaurante.model.Pago, String> mesa = new TableColumn<>("Mesa");
+        mesa.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(pedidoRepository.findById(c.getValue().getPedidoId()).map(Pedido::getMesaId).flatMap(mesaRepository::findById).map(m -> String.valueOf(m.getNumero())).orElse("-")));
+        TableColumn<pe.edu.utp.restaurante.model.Pago, String> metodo = new TableColumn<>("Método");
+        metodo.setCellValueFactory(new PropertyValueFactory<>("metodo"));
+        metodo.setPrefWidth(130);
+        TableColumn<pe.edu.utp.restaurante.model.Pago, BigDecimal> monto = new TableColumn<>("Cobrado S/");
+        monto.setCellValueFactory(new PropertyValueFactory<>("monto"));
+        tblVentas.getColumns().setAll(fecha, codigo, mesa, metodo, monto);
+        tblVentas.setPlaceholder(new Label("No hay ventas cobradas en este período."));
+    }
 
     @Autowired
     private UsuarioRepository usuarioRepository;
@@ -93,17 +117,25 @@ public class AdminController {
 
     @FXML
     public void initialize() {
+        configurarVentas();
+        pe.edu.utp.restaurante.util.RefrescoVisible.cada30Segundos(tblVentas, this::cargarEstadisticas);
         System.out.println("[ADMIN] Inicializando controlador...");
 
         // Configurar ComboBoxes
         if (cmbRol != null) {
             cmbRol.setItems(FXCollections.observableArrayList("ADMIN", "CAJERO", "MOZO", "COCINERO"));
+            cmbRol.valueProperty().addListener((o, anterior, rol) -> {
+                boolean mozo = "MOZO".equals(rol);
+                txtPassword.setDisable(mozo);
+                txtPassword.setPromptText(mozo ? "Mozo: acceso solo con DNI" : "Clave: mínimo 8 caracteres; vacía conserva la actual");
+                if (mozo) txtPassword.clear();
+            });
         }
         if (cmbEstadoMesa != null) {
             cmbEstadoMesa.setItems(FXCollections.observableArrayList("DISPONIBLE", "OCUPADA", "RESERVADA"));
         }
         if (cmbFiltroPeriodo != null) {
-            cmbFiltroPeriodo.setItems(FXCollections.observableArrayList("Hoy", "Esta Semana", "Este Mes"));
+            cmbFiltroPeriodo.setItems(FXCollections.observableArrayList("Hoy", "Esta Semana", "Este Mes", "Todo"));
             cmbFiltroPeriodo.setValue("Hoy");
             cmbFiltroPeriodo.setOnAction(e -> cargarEstadisticas());
         }
@@ -123,6 +155,7 @@ public class AdminController {
             tblUsuarios.getSelectionModel().selectedItemProperty().addListener((obs, old, newVal) -> {
                 if (newVal != null) {
                     txtDni.setText(newVal.getDni());
+                    txtDni.setEditable(false);
                     txtNombre.setText(newVal.getNombre());
                     txtApellido.setText(newVal.getApellido());
                     txtEmail.setText(newVal.getEmail());
@@ -187,6 +220,9 @@ public class AdminController {
         TableColumn<Usuario, String> colRol = new TableColumn<>("Rol");
         colRol.setCellValueFactory(new PropertyValueFactory<>("rol"));
         tblUsuarios.getColumns().addAll(colDni, colNombre, colApellido, colEmail, colRol);
+        TableColumn<Usuario, Boolean> colActivo = new TableColumn<>("Activo");
+        colActivo.setCellValueFactory(new PropertyValueFactory<>("activo"));
+        tblUsuarios.getColumns().add(colActivo);
     }
 
     private void configurarTablaMesas() {
@@ -216,38 +252,14 @@ public class AdminController {
     @FXML
     private void guardarUsuario() {
         try {
-            String dni = txtDni.getText().trim();
-            if (dni.isEmpty()) {
-                mostrarAlerta("Error", "Ingrese DNI", Alert.AlertType.ERROR);
-                return;
-            }
-
-            Usuario usuario = usuarioRepository.findByDni(dni).orElse(new Usuario());
-            usuario.setDni(dni);
-            usuario.setNombre(txtNombre.getText().trim());
-            usuario.setApellido(txtApellido.getText().trim());
-            usuario.setEmail(txtEmail.getText().trim());
-            usuario.setRol(cmbRol.getValue());
-
-            if (!txtPassword.getText().isEmpty()) {
-                usuario.setPassword(txtPassword.getText().trim());
-            } else if (usuario.getId() == null) {
-                usuario.setPassword("123456");
-            }
-
-            if (usuario.getId() == null) {
-                usuario.setActivo(true);
-                usuario.setCreatedAt(LocalDateTime.now());
-            }
-            usuario.setUpdatedAt(LocalDateTime.now());
-
-            usuarioRepository.save(usuario);
+            Usuario seleccionado = tblUsuarios.getSelectionModel().getSelectedItem();
+            personalService.guardarPersonal(seleccionado == null ? null : seleccionado.getId(),
+                    txtDni.getText(), txtNombre.getText(), txtApellido.getText(), txtEmail.getText(),
+                    cmbRol.getValue(), txtPassword.getText(), usuarioActual == null ? null : usuarioActual.getId());
             cargarUsuarios();
             limpiarFormularioUsuario();
             mostrarAlerta("Éxito", "Usuario guardado", Alert.AlertType.INFORMATION);
-        } catch (Exception e) {
-            mostrarAlerta("Error", e.getMessage(), Alert.AlertType.ERROR);
-        }
+        } catch (Exception e) { mostrarErrorPersonal(e); }
     }
 
     @FXML
@@ -257,9 +269,24 @@ public class AdminController {
             mostrarAlerta("Error", "Seleccione un usuario", Alert.AlertType.ERROR);
             return;
         }
-        usuarioRepository.delete(usuario);
-        cargarUsuarios();
-        mostrarAlerta("Éxito", "Usuario eliminado", Alert.AlertType.INFORMATION);
+        Alert confirmar = new Alert(Alert.AlertType.CONFIRMATION, "¿Cambiar el estado activo de " + usuario.getNombre() + "? No se borrará su historial.", ButtonType.OK, ButtonType.CANCEL);
+        if (confirmar.showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) return;
+        try {
+            personalService.cambiarActivo(usuario.getId(), usuarioActual == null ? null : usuarioActual.getId());
+            cargarUsuarios(); limpiarFormularioUsuario();
+            mostrarAlerta("Éxito", "Estado actualizado; el historial se conserva.", Alert.AlertType.INFORMATION);
+        } catch (Exception e) { mostrarErrorPersonal(e); }
+    }
+
+    private void mostrarErrorPersonal(Exception e) {
+        String mensaje;
+        if (e instanceof IllegalArgumentException) mensaje = e.getMessage();
+        else if (e instanceof org.springframework.dao.DataIntegrityViolationException)
+            mensaje = "No se pudo guardar: DNI/correo duplicado o datos que incumplen una regla. Revisa los campos y actualiza la lista.";
+        else if (e instanceof org.springframework.dao.DataAccessException)
+            mensaje = "No se pudo acceder a la base de datos. Comprueba la conexión y vuelve a intentarlo.";
+        else mensaje = "No se pudo completar la operación. Actualiza la lista antes de reintentar.";
+        mostrarAlerta("Registro de personal", mensaje, Alert.AlertType.ERROR);
     }
 
     @FXML
@@ -355,9 +382,21 @@ public class AdminController {
             String periodo = cmbFiltroPeriodo.getValue();
             if (periodo == null) periodo = "Hoy";
 
-            List<Pedido> pedidos = pedidoRepository.findByEstado("ENTREGADO");
-            BigDecimal totalVentas = pedidos.stream()
-                    .map(Pedido::getTotal)
+            java.time.LocalDate hoy = java.time.LocalDate.now();
+            LocalDateTime inicio = switch (periodo) {
+                case "Esta Semana" -> hoy.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY)).atStartOfDay();
+                case "Este Mes" -> hoy.withDayOfMonth(1).atStartOfDay();
+                case "Todo" -> LocalDateTime.MIN;
+                default -> hoy.atStartOfDay();
+            };
+            LocalDateTime fin = hoy.plusDays(1).atStartOfDay();
+            var pagos = pagoRepository.findAll().stream()
+                    .filter(p -> p.getCreatedAt() != null && !p.getCreatedAt().isBefore(inicio) && p.getCreatedAt().isBefore(fin))
+                    .sorted(java.util.Comparator.comparing(pe.edu.utp.restaurante.model.Pago::getCreatedAt).reversed()).toList();
+            var ids = pagos.stream().map(pe.edu.utp.restaurante.model.Pago::getPedidoId).distinct().toList();
+            List<Pedido> pedidos = pedidoRepository.findAllById(ids);
+            BigDecimal totalVentas = pagos.stream()
+                    .map(pe.edu.utp.restaurante.model.Pago::getMonto)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             if (lblTotalVentas != null) {
@@ -368,24 +407,34 @@ public class AdminController {
             }
 
             long totalPlatos = 0;
+            java.util.Map<Long, Integer> ranking = new java.util.HashMap<>();
             for (Pedido pedido : pedidos) {
                 List<PedidoDetalle> detalles = pedidoDetalleRepository.findByPedidoId(pedido.getId());
                 totalPlatos += detalles.stream().mapToInt(PedidoDetalle::getCantidad).sum();
+                detalles.forEach(d -> ranking.merge(d.getPlatoId(), d.getCantidad(), Integer::sum));
             }
             if (lblTotalPlatosVendidos != null) {
                 lblTotalPlatosVendidos.setText(String.valueOf(totalPlatos));
             }
             if (lblTotalUsuarios != null) {
-                lblTotalUsuarios.setText(String.valueOf(usuarioRepository.count()));
+                lblTotalUsuarios.setText("S/ " + (pedidos.isEmpty() ? "0.00" : totalVentas.divide(BigDecimal.valueOf(pedidos.size()), 2, java.math.RoundingMode.HALF_UP)));
             }
+            lstMasVendidos.setItems(FXCollections.observableArrayList(ranking.entrySet().stream()
+                    .sorted(java.util.Map.Entry.<Long, Integer>comparingByValue().reversed()).limit(5)
+                    .map(e -> platoRepository.findById(e.getKey()).map(Plato::getNombre).orElse("Plato eliminado") + "  —  " + e.getValue() + " unidades").toList()));
+            lstMasVendidos.setPlaceholder(new Label("Sin platos vendidos en este período."));
+            tblVentas.setItems(FXCollections.observableArrayList(pagos));
+            lblActualizacion.setText("Actualizado " + LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss")) + " · ventas cobradas · actualización cada 30 s");
 
         } catch (Exception e) {
+            lblActualizacion.setText("No se pudo actualizar. Los valores anteriores pueden estar desactualizados.");
             e.printStackTrace();
             System.err.println("[ERROR] Error al cargar estadísticas: " + e.getMessage());
         }
     }
 
-    private void limpiarFormularioUsuario() {
+    @FXML private void limpiarFormularioUsuario() {
+        txtDni.setEditable(true);
         txtDni.clear();
         txtNombre.clear();
         txtApellido.clear();

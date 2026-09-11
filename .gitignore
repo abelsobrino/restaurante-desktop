@@ -1,4 +1,7 @@
 HELP.md
+.local-demo/
+comprobantes/
+.env
 target/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/

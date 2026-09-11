@@ -31,7 +31,9 @@ public class Cliente {
     @Column(unique = true, nullable = false)
     private String email;
 
-    @Column(nullable = false)
+    // Hash de la clave local. NULL si la cuenta usa identidad externa (Google).
+    @Column
+    @lombok.ToString.Exclude
     private String password;
 
     private String telefono;

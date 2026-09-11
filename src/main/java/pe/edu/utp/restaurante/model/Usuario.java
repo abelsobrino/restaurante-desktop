@@ -29,7 +29,8 @@ public class Usuario {
     @Column(unique = true)
     private String email;
 
-    @Column(nullable = false)
+    @Column
+    @lombok.ToString.Exclude
     private String password;
 
     @Column(nullable = false)

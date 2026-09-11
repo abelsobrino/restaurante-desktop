@@ -31,18 +31,18 @@
                             <Label fx:id="lblTotalVentas" style="-fx-font-size: 20px; -fx-text-fill: #2e7d32;"/>
                         </VBox>
 
-                        <VBox spacing="5" style="-fx-background-color: #e3f2fd; -fx-padding: 15px; -fx-border-radius: 5px;">
+                        <VBox GridPane.columnIndex="1" spacing="5" style="-fx-background-color: #e3f2fd; -fx-padding: 15px; -fx-border-radius: 5px;">
                             <Label text="Total Pedidos" style="-fx-font-weight: bold;"/>
                             <Label fx:id="lblTotalPedidos" style="-fx-font-size: 20px; -fx-text-fill: #0d47a1;"/>
                         </VBox>
 
-                        <VBox spacing="5" style="-fx-background-color: #fff3e0; -fx-padding: 15px; -fx-border-radius: 5px;">
+                        <VBox GridPane.columnIndex="2" spacing="5" style="-fx-background-color: #fff3e0; -fx-padding: 15px; -fx-border-radius: 5px;">
                             <Label text="Platos Vendidos" style="-fx-font-weight: bold;"/>
                             <Label fx:id="lblTotalPlatosVendidos" style="-fx-font-size: 20px; -fx-text-fill: #e65100;"/>
                         </VBox>
 
-                        <VBox spacing="5" style="-fx-background-color: #fce4ec; -fx-padding: 15px; -fx-border-radius: 5px;">
-                            <Label text="Total Usuarios" style="-fx-font-weight: bold;"/>
+                        <VBox GridPane.columnIndex="3" spacing="5" style="-fx-background-color: #fce4ec; -fx-padding: 15px; -fx-border-radius: 5px;">
+                            <Label text="Ticket promedio" style="-fx-font-weight: bold;"/>
                             <Label fx:id="lblTotalUsuarios" style="-fx-font-size: 20px; -fx-text-fill: #b71c1c;"/>
                         </VBox>
                     </GridPane>
@@ -50,7 +50,11 @@
 
 
 
-                    <VBox prefHeight="250.0" VBox.vgrow="ALWAYS"/>
+                    <Label text="LOS 5 PLATOS MÁS VENDIDOS" style="-fx-font-weight: bold;"/>
+                    <ListView fx:id="lstMasVendidos" prefHeight="125"/>
+                    <Label text="VENTAS REALIZADAS" style="-fx-font-weight: bold;"/>
+                    <TableView fx:id="tblVentas" prefHeight="230" VBox.vgrow="ALWAYS"/>
+                    <Label fx:id="lblActualizacion" wrapText="true"/>
 
                 </VBox>
             </Tab>
@@ -70,8 +74,9 @@
                         <PasswordField fx:id="txtPassword" promptText="Contraseña"/>
                         <ComboBox fx:id="cmbRol" promptText="Rol"/>
                         <HBox spacing="10">
+                            <Button text="NUEVO" onAction="#limpiarFormularioUsuario"/>
                             <Button fx:id="btnGuardarUsuario" onAction="#guardarUsuario" style="-fx-background-color: #2e7d32; -fx-text-fill: white; -fx-font-weight: bold;" text="GUARDAR"/>
-                            <Button fx:id="btnEliminarUsuario" onAction="#eliminarUsuario" style="-fx-background-color: #b71c1c; -fx-text-fill: white; -fx-font-weight: bold;" text="ELIMINAR"/>
+                            <Button fx:id="btnEliminarUsuario" onAction="#eliminarUsuario" style="-fx-background-color: #b71c1c; -fx-text-fill: white; -fx-font-weight: bold;" text="BAJA / REACTIVAR"/>
                         </HBox>
                     </VBox>
                 </SplitPane>

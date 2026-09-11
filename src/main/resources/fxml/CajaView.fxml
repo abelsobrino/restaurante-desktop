@@ -20,11 +20,17 @@
 
             <VBox spacing="10" style="-fx-padding: 15px;">
                 <Label style="-fx-font-weight: bold; -fx-font-size: 14px;" text="MESAS"/>
-                <ListView fx:id="lstMesas" prefHeight="400.0"/>
+                <Button text="ACTUALIZAR MESAS" onAction="#actualizarMesas"/>
+                <CheckBox fx:id="chkPagados" text="Ver también pedidos pagados"/>
+                <ListView fx:id="lstMesas" visible="false" managed="false"/>
+                <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS"><content>
+                    <TilePane fx:id="panelMesas" hgap="10" vgap="10" prefColumns="2"/>
+                </content></ScrollPane>
             </VBox>
 
             <VBox spacing="10" style="-fx-padding: 15px;">
                 <Label style="-fx-font-weight: bold; -fx-font-size: 14px;" text="DETALLE DEL PEDIDO"/>
+                <ComboBox fx:id="cmbPedidos" promptText="Selecciona una mesa y su pedido" maxWidth="Infinity"/>
 
                 <GridPane hgap="10" vgap="5">
                     <Label text="Mesa:" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
@@ -45,7 +51,8 @@
 
                 <Separator/>
 
-                <TableView fx:id="tblDetallePedido" prefHeight="200.0"/>
+                <TableView fx:id="tblDetallePedido" prefHeight="200.0" VBox.vgrow="ALWAYS"/>
+                <HBox spacing="15" alignment="CENTER_RIGHT"><Label text="Subtotal sin IGV:"/><Label fx:id="lblBase" text="S/ 0.00"/><Label text="IGV (18%):"/><Label fx:id="lblIgv" text="S/ 0.00"/></HBox>
 
                 <HBox spacing="15" alignment="CENTER_RIGHT">
                     <Label style="-fx-font-weight: bold; -fx-font-size: 14px;" text="TOTAL:"/>
@@ -59,6 +66,7 @@
                 <TextField fx:id="txtReferencia" promptText="Referencia (opcional)" visible="false"/>
 
                 <HBox spacing="10" alignment="CENTER">
+                    <Button fx:id="btnComprobante" onAction="#exportarComprobante" text="PDF / IMPRIMIR" disable="true"/>
                     <Button fx:id="btnCobrar" onAction="#cobrar" style="-fx-background-color: #2e7d32; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10px 30px;" text="COBRAR"/>
                 </HBox>
             </VBox>

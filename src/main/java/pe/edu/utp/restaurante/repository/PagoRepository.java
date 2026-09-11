@@ -6,4 +6,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface PagoRepository extends JpaRepository<Pago, Long> {
+    boolean existsByPedidoId(Long pedidoId);
+    java.util.Optional<Pago> findFirstByPedidoIdOrderByCreatedAtDesc(Long pedidoId);
 }

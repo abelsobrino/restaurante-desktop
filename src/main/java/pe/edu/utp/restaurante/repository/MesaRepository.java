@@ -8,5 +8,8 @@ import java.util.*;
 
 @Repository
 public interface MesaRepository extends JpaRepository<Mesa, Long> {
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("select m from Mesa m where m.id = :id")
+    Optional<Mesa> bloquearPorId(@org.springframework.data.repository.query.Param("id") Long id);
     Optional<Mesa> findByNumero(Integer numero);
 }
