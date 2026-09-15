@@ -487,7 +487,7 @@ public class AdminController {
             Parent root = loader.load();
 
             Stage stage = new Stage();
-            stage.setTitle("Restaurante UTP");
+            stage.setTitle("Restaurante LA FONDA");
             stage.setScene(new Scene(root, 450, 480));
             stage.setMaximized(true);
             stage.show();

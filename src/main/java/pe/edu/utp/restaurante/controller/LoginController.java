@@ -180,7 +180,7 @@ public class LoginController {
             }
 
             Stage stage = new Stage();
-            stage.setTitle("Restaurante UTP - " + titulo);
+            stage.setTitle("Restaurante LA FONDA - " + titulo);
             Scene scene = new Scene(root, 1024, 768);
             stage.setScene(scene);
             stage.setMaximized(true);
