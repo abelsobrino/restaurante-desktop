@@ -33,7 +33,7 @@
                     <Label text="Código:" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
                     <Label fx:id="lblCodigo" GridPane.rowIndex="0" GridPane.columnIndex="1" style="-fx-font-weight: bold;"/>
 
-                    <Label text="Mesa:" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                    <Label text="Mesa / entrega:" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
                     <Label fx:id="lblMesa" GridPane.rowIndex="1" GridPane.columnIndex="1" style="-fx-font-weight: bold;"/>
 
                     <Label text="Fecha:" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
@@ -42,7 +42,7 @@
                     <Label text="Estado:" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
                     <Label fx:id="lblEstado" GridPane.rowIndex="3" GridPane.columnIndex="1" style="-fx-font-weight: bold;"/>
 
-                    <Label text="Total:" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
+                    <Label text="Por preparar:" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
                     <Label fx:id="lblTotal" GridPane.rowIndex="4" GridPane.columnIndex="1" style="-fx-font-weight: bold;"/>
                 </GridPane>
 

@@ -17,11 +17,13 @@ public class PedidoService {
     @Autowired private PedidoRepository pedidoRepository;
     @Autowired private PedidoDetalleRepository pedidoDetalleRepository;
     @Autowired private PlatoRepository platoRepository;
+    @Autowired private StockService stockService;
 
     public static boolean pendienteCocina(PedidoDetalle d) {
         return "PENDIENTE".equals(d.getEstado()) || "EN_PROCESO".equals(d.getEstado());
     }
 
+    // Ahora agrega solo renglones SIN ID; nunca borra los anteriores.
     @Transactional
     public Pedido guardarPedidoConDetalles(Pedido solicitud, List<PedidoDetalle> vista) {
         List<PedidoDetalle> nuevos = vista.stream().filter(d -> d.getId() == null).toList();
@@ -63,6 +65,8 @@ public class PedidoService {
                 throw new IllegalArgumentException("El plato no tiene un precio válido.");
             if (borrador.getPrecioUnitario() == null || plato.getPrecio().compareTo(borrador.getPrecioUnitario()) != 0)
                 throw new IllegalStateException("Cambió el precio de " + plato.getNombre() + ". Descarta los nuevos y actualiza la carta.");
+            // Validación amigable. El descuento definitivo se hace en PostgreSQL al insertar el detalle.
+            stockService.validarStock(plato.getId(), borrador.getCantidad(), plato.getNombre());
             PedidoDetalle linea = new PedidoDetalle();
             linea.setPedidoId(cuenta.getId());
             linea.setPlatoId(plato.getId());
@@ -96,6 +100,7 @@ public class PedidoService {
         return detalleOrdenado(pedidoId);
     }
 
+    // Antes se marcaba LISTO solo en cabecera. Corrige esos detalles al leer/agregar.
     private void normalizarListoAnterior(Pedido cuenta) {
         if (!"LISTO".equals(cuenta.getEstado())) return;
         for (PedidoDetalle d : pedidoDetalleRepository.findByPedidoId(cuenta.getId())) {

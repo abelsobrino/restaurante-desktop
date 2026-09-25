@@ -14,10 +14,10 @@ la carta suministrada con sus precios y descripciones. No ejecutes el archivo or
 
 1. Crea una base vacía en PostgreSQL 14+ o un proyecto Supabase nuevo. El script no
    contiene CREATE DATABASE ni elimina/reemplaza bases.
-2. Ejecuta SOLO `00_instalacion_completa.sql`. Incluye esquema y carta en una transacción.
-   Se detiene si ya existe una tabla; no usa DROP, TRUNCATE ni borra datos existentes.
-   Alternativa: ejecutar `01_esquema_nuevo.sql` y después `02_carta_inicial.sql`.
-   No combines ambas rutas ni ejecutes todos los archivos indiscriminadamente.
+2. Ejecuta SOLO `00_instalacion_completa.sql`. En esta versión incluye el esquema base, la carta y al final la extensión de inventario, proveedores, platos con opciones y reportes.
+   Se detiene si ya existe una tabla del esquema base; no usa DROP TABLE, TRUNCATE ni borra ventas.
+   Alternativa para instalación por partes: `01_esquema_nuevo.sql`, luego `02_carta_inicial.sql` y finalmente `04_inventario_proveedores_reportes.sql`.
+   No combines ambas rutas indiscriminadamente.
 3. Opcional: `03_mesas_opcionales.sql` crea 25 mesas si no hay ninguna.
    Puedes omitirlo y crearlas desde administrador.
 4. Configura la conexión JDBC en `application.properties` para la NUEVA base,
@@ -45,6 +45,30 @@ Para `psql`, con conexión configurada a la base nueva y clave solicitada fuera 
 ```bash
 psql -v ON_ERROR_STOP=1 -h SERVIDOR -U USUARIO -d BASE_NUEVA -f database/00_instalacion_completa.sql
 ```
+
+
+## Si la base YA existe y tiene ventas
+
+No vuelvas a ejecutar `00_instalacion_completa.sql` ni `01_esquema_nuevo.sql`. Haz respaldo y ejecuta solamente:
+
+```text
+database/04_inventario_proveedores_reportes.sql
+```
+
+La migración agrega inventario, recetas, proveedores, compras, gastos, stock diario y familias de platos; además instala los triggers que descuentan/reponen stock. Usa `CREATE TABLE IF NOT EXISTS` y no elimina pedidos ni pagos existentes.
+
+`05_datos_ejemplo_inventario_OPCIONAL.sql` es solo para pruebas y no es necesario en una base real.
+
+## Módulos administrativos nuevos
+
+Desde Administrador → **GESTIÓN** se abren cuatro módulos:
+
+- **Platos con opciones:** agrupa variantes. Ej.: Makis acevichados → x6/x12/x24; Pizza → Personal/Mediana/Familiar. Cada opción sigue siendo un `platos.id` normal para conservar cocina, caja e historial.
+- **Inventario y recetas:** ingredientes en unidades base (`GRAMO`, `MILILITRO`, `UNIDAD`), stock mínimo, ajustes, receta por plato y stock diario.
+- **Proveedores y compras:** proveedores, precios de referencia y compras que incrementan inventario y costo promedio.
+- **Reportes y caja:** rangos de fecha, comparación de periodos, ventas, subtotal, IGV, descuentos, métodos de pago, compras, gastos y exportación PDF/XLSX.
+
+El descuento real de ingredientes ocurre en PostgreSQL al insertar `pedido_detalles`, no solo en Java. Por eso los pedidos presenciales y cualquier backend web que inserte correctamente detalles comparten la misma regla de stock. Al cancelar una cuenta abierta, los detalles se cancelan antes que la cabecera y el stock consumido se repone en la misma transacción.
 
 ## Carta real conservada
 
@@ -93,7 +117,7 @@ La demo usa admin 11111111 / caja 22222222 con clave **demo12345**; mozo 3333333
 Si ya usaste una demo anterior con texto plano, cierra la app y renombra `.local-demo`
 a una carpeta de respaldo: al reiniciar se generarán cuentas demo con hashes.
 
-## Relaciones: 17 tablas
+## Relaciones: esquema base + 14 tablas administrativas nuevas
 
 | Área | Tablas y relaciones |
 | --- | --- |
@@ -103,6 +127,10 @@ a una carpeta de respaldo: al reiniciar se generarán cuentas demo con hashes.
 | Cuentas web | clientes → clientes_identidades / clientes_direcciones / clientes_tokens |
 | Pedidos web | clientes → pedidos; pedidos → pedidos_entregas / pagos_intentos / pedido_eventos |
 | Opiniones | clientes + pedidos + platos → resenas → resenas_imagenes |
+| Inventario | ingredientes ↔ plato_ingredientes; plato_stock_diario; inventario_movimientos |
+| Abastecimiento | proveedores ↔ proveedor_ingredientes; compras → compra_detalles |
+| Variantes | plato_familias → plato_familia_variantes → platos |
+| Gestión | gastos, mermas y caja_cierres |
 
 Los FK impiden borrar personal, platos o clientes con historial comercial.
 Para retirar un plato de la carta, usa disponible=false. No borres ventas para
@@ -178,3 +206,19 @@ La interfaz de caja aún es por mesas; gestionar los cobros web sin mesa será p
 - Compilación completa, suite JUnit y ejecución visual de JavaFX siguen pendientes
   en JDK 21 con Maven disponible. Las pruebas SQL embebidas no equivalen a validar
   la configuración particular, permisos y conexión de tu instalación Supabase.
+
+## V4 - gestión de inventario, stock y caja
+
+Si tu base ya estaba funcionando con la migración 04, ejecuta **solo** `07_mejoras_gestion_v4.sql` en Supabase SQL Editor.
+
+La V4 agrega `ingredientes.descuento_automatico`, permite usar unidades base UNIDAD/GRAMO/KILOGRAMO/MILILITRO/LITRO, recrea de forma segura las vistas de stock, optimiza índices y reemplaza `configurar_stock_diario(...)`. Los ingredientes automáticos se descuentan cuando se prepara/aumenta el stock de un plato; los ingredientes manuales (por ejemplo aceite) se descuentan con ajustes de inventario cuando corresponda.
+
+Para una base nueva puedes ejecutar `00_instalacion_completa.sql`, que ya incluye la V4 al final.
+
+No se eliminan columnas compartidas con la web. Campos como `plato_nombre`, `mesa_numero`, `mozo_nombre` e `inventario_reservado` se conservan porque sirven como snapshots operativos/auditoría y para evitar romper compatibilidad entre escritorio y web.
+
+## V5 - Stock acumulativo
+
+Si ya tenías instalada la V4, ejecuta `08_stock_acumulativo_v5.sql` una sola vez.
+
+Desde V5, el sistema usa `agregar_stock_diario(...)` y el valor escrito en **Stock Platos** es una cantidad adicional. Ejemplo: Preparado 5 / Disponible 3 / Vendido 2; al ingresar 4 pasa a Preparado 9 / Disponible 7 / Vendido 2. Solo se descuentan del inventario los insumos automáticos necesarios para las 4 porciones agregadas.

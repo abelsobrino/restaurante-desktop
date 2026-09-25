@@ -38,8 +38,10 @@ public class CajaController {
     @Autowired private pe.edu.utp.restaurante.repository.UsuarioRepository usuarioRepository;
     @FXML private javafx.scene.layout.TilePane panelMesas;
     @FXML private ComboBox<Pedido> cmbPedidos;
+    @FXML private ComboBox<Pedido> cmbPedidosWeb;
     @FXML private CheckBox chkPagados;
-    @FXML private Label lblBase, lblIgv;
+    @FXML private Label lblBase, lblIgv, lblPedidoWebPagado;
+    @FXML private javafx.scene.layout.VBox pnlCobroLocal;
     @FXML private Button btnComprobante;
 
     @FXML private void actualizarMesas() {
@@ -65,7 +67,25 @@ public class CajaController {
         if (pedidoSeleccionado == null) return;
         var pago = pagoRepository.findFirstByPedidoIdOrderByCreatedAtDesc(pedidoSeleccionado.getId());
         if (pago.isEmpty()) { mostrarMensaje("Primero registra el cobro.", "error"); return; }
-        guardarComprobante(pago.get());
+        if ("WEB".equalsIgnoreCase(pedidoSeleccionado.getOrigen())) imprimirWebDirecto(pago.get());
+        else guardarComprobante(pago.get());
+    }
+
+    private void imprimirWebDirecto(Pago pago) {
+        java.nio.file.Path temporal = null;
+        try {
+            temporal = java.nio.file.Files.createTempFile("LaFonda-Web-" + pago.getId() + "-", ".pdf");
+            comprobanteService.generar(pago, temporal);
+            try (var pdf = org.apache.pdfbox.pdmodel.PDDocument.load(temporal.toFile())) {
+                java.awt.print.PrinterJob job = java.awt.print.PrinterJob.getPrinterJob();
+                job.setPageable(new org.apache.pdfbox.printing.PDFPageable(pdf));
+                if (job.printDialog()) job.print();
+            }
+        } catch (Exception e) {
+            mostrarMensaje("No se pudo imprimir el pedido web: " + e.getMessage(), "error");
+        } finally {
+            if (temporal != null) try { java.nio.file.Files.deleteIfExists(temporal); } catch (Exception ignored) { }
+        }
     }
 
     private void guardarComprobante(Pago pago) {
@@ -119,6 +139,7 @@ public class CajaController {
     private Pedido pedidoSeleccionado;
     private ObservableList<Mesa> mesas = FXCollections.observableArrayList();
     private ObservableList<PedidoDetalle> detallesPedido = FXCollections.observableArrayList();
+    private final java.util.Map<Long,String> nombresPlatos = new java.util.HashMap<>();
 
     @FXML
     private Text txtUsuario;
@@ -174,12 +195,22 @@ public class CajaController {
             btnComprobante.setDisable(p == null || !"ENTREGADO".equals(p.getEstado()));
             if (p != null) { cargarDetallePedido(p.getId()); mostrarInfoPedido(p); }
         });
+        cmbPedidosWeb.setConverter(new javafx.util.StringConverter<>() {
+            @Override public String toString(Pedido p) {
+                if (p == null) return "";
+                return p.getTipo() + " — " + p.getCodigo() + " — " + (p.getClienteNombre() == null ? "Cliente web" : p.getClienteNombre()) + " — S/ " + p.getTotal();
+            }
+            @Override public Pedido fromString(String texto) { return null; }
+        });
+        cmbPedidosWeb.valueProperty().addListener((o,a,p) -> {
+            if (p != null) seleccionarPedidoWeb(p);
+        });
         chkPagados.setOnAction(e -> actualizarMesas());
         System.out.println("[CAJA] Inicializando controlador...");
 
         if (cmbMetodoPago != null) {
             cmbMetodoPago.setItems(FXCollections.observableArrayList(
-                    "EFECTIVO", "TARJETA", "YAPE", "TRANSFERENCIA", "OTRO"
+                    "EFECTIVO", "TARJETA", "YAPE", "TRANSFERENCIA", "OTRO", "ONLINE"
             ));
 
             cmbMetodoPago.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
@@ -211,12 +242,14 @@ public class CajaController {
 
         // Configurar tabla de detalles
         if (tblDetallePedido != null) {
+            nombresPlatos.clear();
+            for (Plato p : platoRepository.findAll()) nombresPlatos.put(p.getId(), p.getNombre());
             TableColumn<PedidoDetalle, String> colPlato = new TableColumn<>("Plato");
             colPlato.setCellValueFactory(cellData -> {
-                String nombre = platoRepository.findById(cellData.getValue().getPlatoId())
-                        .map(Plato::getNombre)
-                        .orElse("Desconocido");
-                return javafx.beans.binding.Bindings.createStringBinding(() -> nombre);
+                PedidoDetalle d = cellData.getValue();
+                String nombre = d.getPlatoNombre() != null && !d.getPlatoNombre().isBlank()
+                        ? d.getPlatoNombre() : nombresPlatos.getOrDefault(d.getPlatoId(), "Producto " + d.getPlatoId());
+                return new javafx.beans.property.SimpleStringProperty(nombre);
             });
             colPlato.setPrefWidth(200);
 
@@ -238,6 +271,7 @@ public class CajaController {
         }
 
         cargarMesas();
+        cargarPedidosWeb();
 
         if (btnCobrar != null && tblDetallePedido != null) {
             btnCobrar.disableProperty().bind(
@@ -272,8 +306,40 @@ public class CajaController {
         }
     }
 
+    @FXML private void actualizarPedidosWeb() { cargarPedidosWeb(); }
+
+    private void cargarPedidosWeb() {
+        try {
+            List<Pedido> web = pedidoRepository.findPedidosWebPagados();
+            cmbPedidosWeb.setItems(FXCollections.observableArrayList(web));
+        } catch (Exception e) {
+            cmbPedidosWeb.setItems(FXCollections.observableArrayList());
+        }
+    }
+
+    private void seleccionarPedidoWeb(Pedido pedido) {
+        cmbPedidos.getSelectionModel().clearSelection();
+        pedidoSeleccionado = pedido;
+        detallesPedido.clear();
+        cargarDetallePedido(pedido.getId());
+        mostrarInfoPedido(pedido);
+        btnComprobante.setDisable(false);
+        btnComprobante.setText("IMPRIMIR PEDIDO WEB");
+        cmbMetodoPago.getSelectionModel().select("ONLINE");
+        cmbMetodoPago.setDisable(true);
+        txtReferencia.setDisable(true);
+        pnlCobroLocal.setVisible(false); pnlCobroLocal.setManaged(false);
+        lblPedidoWebPagado.setVisible(true); lblPedidoWebPagado.setManaged(true);
+    }
+
     private void cargarPedidosPorMesa(Mesa mesa) {
         try {
+            cmbMetodoPago.setDisable(false);
+            txtReferencia.setDisable(false);
+            pnlCobroLocal.setVisible(true); pnlCobroLocal.setManaged(true);
+            lblPedidoWebPagado.setVisible(false); lblPedidoWebPagado.setManaged(false);
+            btnComprobante.setText("PDF / IMPRIMIR");
+            cmbPedidosWeb.getSelectionModel().clearSelection();
             List<Pedido> pedidos = pedidoRepository.findByMesaIdAndEstado(mesa.getId(), "TERMINADO");
             if (chkPagados.isSelected()) pedidos.addAll(pedidoRepository.findByMesaIdAndEstado(mesa.getId(), "ENTREGADO"));
             pedidos.sort(java.util.Comparator.comparing(Pedido::getCreatedAt, java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder())));
@@ -305,13 +371,22 @@ public class CajaController {
     private void mostrarInfoPedido(Pedido pedido) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
         if (lblMesaInfo != null) {
-            lblMesaInfo.setText(pedido.getMesaId() == null ? "Sin mesa" : mesaRepository.findById(pedido.getMesaId()).map(m -> String.valueOf(m.getNumero())).orElse("-"));
+            if ("WEB".equalsIgnoreCase(pedido.getOrigen())) {
+                String info = pedido.getTipo();
+                if (pedido.getClienteTelefono() != null && !pedido.getClienteTelefono().isBlank()) info += " | Tel: " + pedido.getClienteTelefono();
+                if ("DELIVERY".equalsIgnoreCase(pedido.getTipo()) && pedido.getDireccionEntrega() != null && !pedido.getDireccionEntrega().isBlank())
+                    info += " | " + pedido.getDireccionEntrega();
+                lblMesaInfo.setText(info);
+            } else {
+                lblMesaInfo.setText(pedido.getMesaId() == null ? "Sin mesa" : "Mesa " + mesaRepository.findById(pedido.getMesaId()).map(m -> String.valueOf(m.getNumero())).orElse("-"));
+            }
         }
         if (lblFecha != null) {
             lblFecha.setText("Fecha: " + (pedido.getCreatedAt() != null ? pedido.getCreatedAt().format(formatter) : "-"));
         }
         if (lblMozo != null) {
-            lblMozo.setText(pedido.getUsuarioId() == null ? "-" : usuarioRepository.findById(pedido.getUsuarioId()).map(u -> u.getNombre() + " " + u.getApellido()).orElse("-"));
+            lblMozo.setText("WEB".equalsIgnoreCase(pedido.getOrigen()) ? "Cliente: " + (pedido.getClienteNombre() == null ? "Web" : pedido.getClienteNombre()) :
+                    (pedido.getUsuarioId() == null ? "-" : usuarioRepository.findById(pedido.getUsuarioId()).map(u -> u.getNombre() + " " + u.getApellido()).orElse("-")));
         }
         if (lblCodigo != null) {
             lblCodigo.setText("Código: " + pedido.getCodigo());

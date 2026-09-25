@@ -53,8 +53,16 @@ public class ComprobanteService {
         lineas.add("");
         lineas.add("Fecha: " + pago.getCreatedAt()
                 .format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")));
-        lineas.add("Pedido: " + pedido.getCodigo() + "    Mesa: " + mesa);
-        lineas.add("Mozo: " + mozo);
+        if ("WEB".equalsIgnoreCase(pedido.getOrigen())) {
+            lineas.add("Pedido WEB: " + pedido.getCodigo() + "    Tipo: " + pedido.getTipo());
+            lineas.add("Cliente: " + (pedido.getClienteNombre() == null ? "-" : pedido.getClienteNombre()));
+            lineas.add("Telefono: " + (pedido.getClienteTelefono() == null ? "-" : pedido.getClienteTelefono()));
+            if ("DELIVERY".equalsIgnoreCase(pedido.getTipo()))
+                lineas.add("Entrega: " + (pedido.getDireccionEntrega() == null ? "-" : pedido.getDireccionEntrega()));
+        } else {
+            lineas.add("Pedido: " + pedido.getCodigo() + "    Mesa: " + mesa);
+            lineas.add("Mozo: " + mozo);
+        }
         lineas.add("Pago: " + pago.getMetodo());
 
         if (pago.getReferencia() != null && !pago.getReferencia().isBlank()) {

@@ -24,10 +24,14 @@ import pe.edu.utp.restaurante.repository.PedidoDetalleRepository;
 import pe.edu.utp.restaurante.repository.PedidoRepository;
 import pe.edu.utp.restaurante.repository.PlatoRepository;
 import pe.edu.utp.restaurante.repository.UsuarioRepository;
+import pe.edu.utp.restaurante.service.CatalogoOpcionesService;
+
+import pe.edu.utp.restaurante.util.AdminModuleLauncher;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 @Component
 @org.springframework.context.annotation.Scope("prototype")
@@ -64,6 +68,9 @@ public class AdminController {
 
     @Autowired
     private PlatoRepository platoRepository;
+
+    @Autowired private CatalogoOpcionesService catalogoOpcionesService;
+    @Autowired private pe.edu.utp.restaurante.service.InventarioService inventarioService;
 
     @Autowired
     private PedidoRepository pedidoRepository;
@@ -196,6 +203,27 @@ public class AdminController {
 
     public void setUsuario(Usuario usuario) {
         this.usuarioActual = usuario;
+        javafx.application.Platform.runLater(this::notificarStockBajo);
+    }
+
+    private void notificarStockBajo() {
+        try {
+            var bajos = inventarioService.stockBajo();
+            if (bajos.isEmpty()) return;
+            String detalle = bajos.stream().limit(8)
+                    .map(i -> "• " + i.nombre() + ": " + i.stockActual().stripTrailingZeros().toPlainString()
+                            + " " + pe.edu.utp.restaurante.service.InventarioService.abreviar(i.unidadBase())
+                            + " (mín. " + i.stockMinimo().stripTrailingZeros().toPlainString() + ")")
+                    .collect(java.util.stream.Collectors.joining("\n"));
+            if (bajos.size() > 8) detalle += "\n• ... y " + (bajos.size() - 8) + " ingrediente(s) más";
+            Alert a = new Alert(Alert.AlertType.WARNING);
+            a.setTitle("Inventario bajo");
+            a.setHeaderText("Hay " + bajos.size() + " ingrediente(s) con stock bajo o en mínimo");
+            a.setContentText(detalle + "\n\nRevisa Inventario o registra una compra a proveedor.");
+            a.showAndWait();
+        } catch (Exception ignored) {
+            // Permite entrar al administrador si la migración de inventario aún no fue aplicada.
+        }
     }
 
     private void cargarCategoriasEnCombo() {
@@ -475,7 +503,66 @@ public class AdminController {
 
     private void cargarPlatos() {
         if (tblPlatos != null) {
-            tblPlatos.setItems(FXCollections.observableArrayList(platoRepository.findAll()));
+            Set<Long> agrupados = Set.of();
+            try {
+                agrupados = catalogoOpcionesService.idsPlatosAgrupados();
+            } catch (Exception ignored) {
+                // Permite abrir el administrador incluso antes de ejecutar la migración 04.
+            }
+            Set<Long> idsAgrupados = agrupados;
+            tblPlatos.setItems(FXCollections.observableArrayList(
+                    platoRepository.findAll().stream()
+                            .filter(p -> !idsAgrupados.contains(p.getId()))
+                            .toList()
+            ));
+        }
+    }
+
+
+    @FXML
+    private void abrirPlatosOpciones() {
+        abrirModuloAdmin("/fxml/PlatosOpcionesView.fxml", "La Fonda - Platos con opciones", 1180, 760);
+    }
+
+    @FXML
+    private void abrirIngredientes() { abrirGestionInventario("INGREDIENTES", "La Fonda - Ingredientes y recetas"); }
+
+    @FXML
+    private void abrirInventario() { abrirGestionInventario("INVENTARIO", "La Fonda - Inventario / almacén"); }
+
+    @FXML
+    private void abrirStockPlatos() { abrirGestionInventario("STOCK", "La Fonda - Stock de platos"); }
+
+    private void abrirGestionInventario(String seccion, String titulo) {
+        Object controlador = abrirModuloAdmin("/fxml/InventarioView.fxml", titulo, 1220, 780);
+        if (controlador instanceof InventarioController c) c.abrirSeccion(seccion);
+    }
+
+    @FXML
+    private void abrirProveedores() {
+        Object controlador = abrirModuloAdmin("/fxml/ProveedoresView.fxml", "La Fonda - Proveedores y compras", 1100, 720);
+        if (controlador instanceof ProveedoresController c) {
+            c.setUsuarioId(usuarioActual == null ? null : usuarioActual.getId());
+        }
+    }
+
+    @FXML
+    private void abrirReportesAvanzados() {
+        Object controlador = abrirModuloAdmin("/fxml/ReportesAvanzadosView.fxml", "La Fonda - Reportes y caja", 1200, 760);
+        if (controlador instanceof ReportesAvanzadosController c) {
+            c.setUsuarioId(usuarioActual == null ? null : usuarioActual.getId());
+        }
+    }
+
+    private Object abrirModuloAdmin(String fxml, String titulo, double ancho, double alto) {
+        try {
+            return AdminModuleLauncher.abrir(fxml, titulo, ancho, alto);
+        } catch (Exception e) {
+            e.printStackTrace();
+            mostrarAlerta("Módulo administrador",
+                    "No se pudo abrir " + titulo + ". Revisa que las migraciones 04 y 07 estén ejecutadas y vuelve a intentar.",
+                    Alert.AlertType.ERROR);
+            return null;
         }
     }
 

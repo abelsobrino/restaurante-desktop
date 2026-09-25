@@ -17,4 +17,14 @@ public interface PedidoRepository extends JpaRepository<Pedido, Long> {
     Optional<Pedido> findByMesaIdAndEstadoNot(Long mesaId, String estado);
     List<Pedido> findByEstado(String estado);
     List<Pedido> findByMesaIdAndEstado(Long mesaId, String estado);
+    List<Pedido> findByOrigenOrderByCreatedAtDesc(String origen);
+
+    @org.springframework.data.jpa.repository.Query(value = """
+            select p.* from pedidos p
+            where p.origen = 'WEB' and p.estado <> 'CANCELADO'
+              and exists (select 1 from pagos pg where pg.pedido_id = p.id)
+            order by p.created_at desc
+            limit 100
+            """, nativeQuery = true)
+    List<Pedido> findPedidosWebPagados();
 }

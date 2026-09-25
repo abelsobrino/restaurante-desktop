@@ -118,8 +118,42 @@
                             <Button fx:id="btnGuardarPlato" onAction="#guardarPlato" style="-fx-background-color: #2e7d32; -fx-text-fill: white; -fx-font-weight: bold;" text="GUARDAR"/>
                             <Button fx:id="btnEliminarPlato" onAction="#eliminarPlato" style="-fx-background-color: #b71c1c; -fx-text-fill: white; -fx-font-weight: bold;" text="ELIMINAR"/>
                         </HBox>
+                        <Separator/>
+                        <Label text="¿Tiene tamaños o cantidades? Ej.: x6/x12/x24 o Personal/Mediana/Familiar" wrapText="true" style="-fx-text-fill:#555555;"/>
+                        <Button onAction="#abrirPlatosOpciones" maxWidth="Infinity"
+                                style="-fx-background-color:#6a1b9a; -fx-text-fill:white; -fx-font-weight:bold;"
+                                text="CREAR / EDITAR PLATO CON OPCIONES"/>
                     </VBox>
                 </SplitPane>
+            </Tab>
+
+            <Tab text="GESTIÓN" closable="false">
+                <VBox alignment="TOP_CENTER" spacing="18" style="-fx-padding: 30px;">
+                    <Label text="GESTIÓN AVANZADA DEL RESTAURANTE" style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #0d47a1;"/>
+                    <Label text="Configura presentaciones, inventario, proveedores y reportes sin alterar los módulos actuales." wrapText="true" style="-fx-text-fill: #555555;"/>
+
+                    <GridPane hgap="18" vgap="18" alignment="CENTER">
+                        <Button GridPane.columnIndex="0" GridPane.rowIndex="0" minWidth="250" prefHeight="70"
+                                text="1. INGREDIENTES / RECETAS" onAction="#abrirIngredientes"
+                                style="-fx-background-color:#6a1b9a;-fx-text-fill:white;-fx-font-size:15px;-fx-font-weight:bold;"/>
+                        <Button GridPane.columnIndex="1" GridPane.rowIndex="0" minWidth="250" prefHeight="70"
+                                text="2. INVENTARIO / ALMACÉN" onAction="#abrirInventario"
+                                style="-fx-background-color:#2e7d32;-fx-text-fill:white;-fx-font-size:15px;-fx-font-weight:bold;"/>
+                        <Button GridPane.columnIndex="0" GridPane.rowIndex="1" minWidth="250" prefHeight="70"
+                                text="3. STOCK PLATOS" onAction="#abrirStockPlatos"
+                                style="-fx-background-color:#0f766e;-fx-text-fill:white;-fx-font-size:15px;-fx-font-weight:bold;"/>
+                        <Button GridPane.columnIndex="1" GridPane.rowIndex="1" minWidth="250" prefHeight="70"
+                                text="4. PROVEEDORES / COMPRAS" onAction="#abrirProveedores"
+                                style="-fx-background-color:#ef6c00;-fx-text-fill:white;-fx-font-size:15px;-fx-font-weight:bold;"/>
+                        <Button GridPane.columnIndex="0" GridPane.rowIndex="2" GridPane.columnSpan="2" minWidth="518" prefHeight="70"
+                                text="5. REPORTES / CAJA" onAction="#abrirReportesAvanzados"
+                                style="-fx-background-color:#1565c0;-fx-text-fill:white;-fx-font-size:15px;-fx-font-weight:bold;"/>
+                    </GridPane>
+
+                    <Separator prefWidth="540"/>
+                    <Label text="Los platos simples se siguen creando en la pestaña PLATOS. Para makis, alitas, pizzas u otros productos con tamaños/presentaciones usa PLATOS CON OPCIONES."
+                           maxWidth="560" wrapText="true" style="-fx-text-fill: #555555;"/>
+                </VBox>
             </Tab>
 
         </TabPane>

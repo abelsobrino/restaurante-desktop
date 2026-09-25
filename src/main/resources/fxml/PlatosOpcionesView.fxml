@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<BorderPane xmlns:fx="http://javafx.com/fxml/1" fx:controller="pe.edu.utp.restaurante.controller.PlatosOpcionesController" prefWidth="1180" prefHeight="760">
+    <top>
+        <VBox spacing="6" style="-fx-background-color:#111827;">
+            <padding><Insets top="18" right="22" bottom="18" left="22"/></padding>
+            <Label text="Platos con opciones / presentaciones" style="-fx-text-fill:white;-fx-font-size:24;-fx-font-weight:bold;"/>
+            <Label fx:id="lblAyuda" text="Ej.: Makis acevichados → x6, x12, x24 | Pizza → Personal, Mediana, Familiar" wrapText="true" style="-fx-text-fill:#d1d5db;"/>
+        </VBox>
+    </top>
+    <center>
+        <SplitPane dividerPositions="0.33">
+            <items>
+                <VBox spacing="10" style="-fx-background-color:#f8fafc;">
+                    <padding><Insets top="16" right="16" bottom="16" left="16"/></padding>
+                    <HBox spacing="8">
+                        <Label text="Platos base" style="-fx-font-size:18;-fx-font-weight:bold;" HBox.hgrow="ALWAYS"/>
+                        <Button text="Nuevo" onAction="#nuevaFamilia"/>
+                    </HBox>
+                    <ListView fx:id="lstFamilias" VBox.vgrow="ALWAYS"/>
+                    <Separator/>
+                    <Label text="Datos del plato base" style="-fx-font-size:16;-fx-font-weight:bold;"/>
+                    <TextField fx:id="txtNombreFamilia" promptText="Ej. Makis acevichados"/>
+                    <ComboBox fx:id="cmbCategoria" promptText="Categoría" maxWidth="Infinity"/>
+                    <TextArea fx:id="txtDescripcionFamilia" promptText="Descripción" prefRowCount="3" wrapText="true"/>
+                    <Button text="Guardar plato base" onAction="#guardarFamilia" maxWidth="Infinity" style="-fx-background-color:#2563eb;-fx-text-fill:white;-fx-font-weight:bold;"/>
+                    <Button text="Activar / desactivar plato base" onAction="#activarDesactivarFamilia" maxWidth="Infinity"/>
+                </VBox>
+
+                <BorderPane>
+                    <top>
+                        <HBox spacing="10" alignment="CENTER_LEFT">
+                            <padding><Insets top="15" right="15" bottom="12" left="15"/></padding>
+                            <Label text="Opciones del plato" style="-fx-font-size:18;-fx-font-weight:bold;"/>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <Button text="Nueva opción" onAction="#nuevaVariante"/>
+                            <Button text="Actualizar" onAction="#actualizar"/>
+                        </HBox>
+                    </top>
+                    <center>
+                        <TableView fx:id="tblVariantes"/>
+                    </center>
+                    <right>
+                        <VBox spacing="9" prefWidth="330" style="-fx-background-color:#f8fafc;">
+                            <padding><Insets top="16" right="16" bottom="16" left="16"/></padding>
+                            <Label text="Crear / editar opción" style="-fx-font-size:16;-fx-font-weight:bold;"/>
+                            <Label text="Puedes elegir una sugerencia o escribir otra." wrapText="true"/>
+                            <ComboBox fx:id="cmbEtiquetaVariante" promptText="x6, x12, Mediana..." maxWidth="Infinity"/>
+                            <TextField fx:id="txtPrecioVariante" promptText="Precio S/"/>
+                            <TextField fx:id="txtTiempoVariante" promptText="Tiempo preparación (min)"/>
+                            <TextField fx:id="txtStockVariante" promptText="Cantidad a agregar hoy (opcional)"/>
+                            <CheckBox fx:id="chkDisponibleVariante" text="Disponible para venta" selected="true"/>
+                            <Button text="Guardar opción" onAction="#guardarVariante" maxWidth="Infinity" style="-fx-background-color:#16803c;-fx-text-fill:white;-fx-font-weight:bold;"/>
+                            <Button text="Agregar stock de hoy" onAction="#aplicarStockHoy" maxWidth="Infinity"/>
+                            <Button text="Mostrar / ocultar opción" onAction="#activarDesactivarVariante" maxWidth="Infinity"/>
+                            <Separator/>
+                            <Label text="Ejemplos" style="-fx-font-weight:bold;"/>
+                            <Label text="Makis acevichados: x6, x12, x24\nAlitas BBQ: x6, x12, x24\nPizza hawaiana: Personal, Mediana, Familiar" wrapText="true"/>
+                            <Label text="Cada opción tiene precio, receta y stock propios. En opciones nuevas, guarda primero la opción y configura su receta antes de agregar stock." wrapText="true" style="-fx-font-weight:bold;"/>
+                        </VBox>
+                    </right>
+                </BorderPane>
+            </items>
+        </SplitPane>
+    </center>
+    <bottom>
+        <HBox alignment="CENTER_RIGHT" spacing="10" style="-fx-background-color:#e5e7eb;">
+            <padding><Insets top="10" right="15" bottom="10" left="15"/></padding>
+            <Button text="Cerrar" onAction="#cerrar"/>
+        </HBox>
+    </bottom>
+</BorderPane>

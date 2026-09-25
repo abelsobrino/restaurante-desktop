@@ -1,6 +1,7 @@
 package pe.edu.utp.restaurante.controller;
 
 import java.math.BigDecimal;
+import java.sql.SQLException;
 import java.util.*;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.*;
@@ -18,7 +19,11 @@ import org.springframework.stereotype.Component;
 import pe.edu.utp.restaurante.config.ApplicationContextProvider;
 import pe.edu.utp.restaurante.model.*;
 import pe.edu.utp.restaurante.repository.*;
+import pe.edu.utp.restaurante.service.CatalogoOpcionesService;
+import pe.edu.utp.restaurante.service.CatalogoOpcionesService.FamiliaCarta;
+import pe.edu.utp.restaurante.service.CatalogoOpcionesService.VarianteCarta;
 import pe.edu.utp.restaurante.service.PedidoService;
+import pe.edu.utp.restaurante.service.StockService;
 
 @Component
 @Scope("prototype")
@@ -28,13 +33,15 @@ public class MozoController {
     @Autowired private CategoriaRepository categoriaRepository;
     @Autowired private PedidoRepository pedidoRepository;
     @Autowired private PedidoService pedidoService;
+    @Autowired private StockService stockService;
+    @Autowired private CatalogoOpcionesService catalogoOpcionesService;
 
     @FXML private Text txtUsuario, txtMesaSeleccionada;
     @FXML private TilePane panelMesas;
     @FXML private VBox panelCategorias, panelPlatos, panelCarta;
     @FXML private Label lblCategoria, lblSubtotal;
     @FXML private ListView<Mesa> lstMesas;
-    @FXML private ListView<Plato> lstPlatos;
+    @FXML private ListView<ItemCarta> lstPlatos;
     @FXML private TextField txtBuscarPlato;
     @FXML private Spinner<Integer> spnCantidad;
     @FXML private TableView<PedidoDetalle> tblPedido;
@@ -47,11 +54,20 @@ public class MozoController {
     private List<Mesa> mesas = List.of();
     private List<Plato> platos = List.of();
     private List<Categoria> categorias = List.of();
+    private Map<Long, Integer> stockPlatos = new HashMap<>();
+    private Map<Long, Plato> platosPorId = new HashMap<>();
+    private List<FamiliaCarta> familiasCarta = List.of();
+    private Map<Long, List<VarianteCarta>> variantesPorFamilia = new HashMap<>();
+    private Set<Long> platosAgrupados = new HashSet<>();
     private Usuario usuarioActual;
     private Mesa mesaSeleccionada;
     private Pedido cuenta;
     private Long categoriaId;
     private boolean sinCategoria, ocupado, requiereRevision;
+
+    private record ItemCarta(Long familiaId, Plato plato, String nombre, String descripcion, Long categoriaId) {
+        boolean esFamilia() { return familiaId != null; }
+    }
 
     @FXML public void initialize() {
         spnCantidad.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 100, 1));
@@ -61,14 +77,35 @@ public class MozoController {
         btnTerminarPedido.setText("MANDAR CUENTA A CAJA");
         btnLiberarMesa.setText("ANULAR CUENTA / LIBERAR");
         lstPlatos.setCellFactory(l -> new ListCell<>() {
-            @Override protected void updateItem(Plato p, boolean empty) {
-                super.updateItem(p, empty);
-                setText(empty || p == null ? null : p.getNombre() + " — S/ " + p.getPrecio()
-                        + (p.getDescripcion() == null ? "" : "\n" + p.getDescripcion()));
+            @Override protected void updateItem(ItemCarta item, boolean empty) {
+                super.updateItem(item, empty);
+                setDisable(false); setOpacity(1); setStyle("");
+                if (empty || item == null) { setText(null); return; }
+                boolean agotado = itemAgotado(item);
+                if (item.esFamilia()) {
+                    String opciones = etiquetasFamilia(item.familiaId());
+                    BigDecimal desde = precioMinimoFamilia(item.familiaId());
+                    setText(item.nombre()
+                            + (desde == null ? "" : " — Desde S/ " + desde)
+                            + (item.descripcion() == null || item.descripcion().isBlank() ? "" : "\n" + item.descripcion())
+                            + (opciones.isBlank() ? "" : "\nOpciones: " + opciones)
+                            + (agotado ? "\nAGOTADO" : ""));
+                } else {
+                    Plato plato = item.plato();
+                    Integer stock = stockPlatos.get(plato.getId());
+                    String estadoStock = stock == null ? "" : "\nStock: " + stock + (agotado ? " — AGOTADO" : "");
+                    setText(plato.getNombre() + " — S/ " + plato.getPrecio()
+                            + (plato.getDescripcion() == null ? "" : "\n" + plato.getDescripcion()) + estadoStock);
+                }
                 setWrapText(true);
+                if (agotado) {
+                    setDisable(true); setOpacity(0.48);
+                    setStyle("-fx-background-color:#e5e7eb; -fx-text-fill:#6b7280;");
+                }
             }
         });
         txtBuscarPlato.textProperty().addListener((o, a, b) -> filtrarPlatos());
+        lstPlatos.getSelectionModel().selectedItemProperty().addListener((o,a,b) -> refrescarVista());
         configurarTabla();
         try { cargarCatalogos(); } catch (Exception e) { error(e); }
         volverCategorias();
@@ -141,25 +178,31 @@ public class MozoController {
 
     private String nombrePlato(PedidoDetalle d) {
         if (d.getPlatoNombre() != null) return d.getPlatoNombre();
-        return platos.stream().filter(p -> Objects.equals(p.getId(), d.getPlatoId()))
-                .map(Plato::getNombre).findFirst().orElse("Producto " + d.getPlatoId());
+        return platosPorId.getOrDefault(d.getPlatoId(), null) != null
+                ? platosPorId.get(d.getPlatoId()).getNombre() : "Producto " + d.getPlatoId();
     }
 
     private void cargarCatalogos() {
         mesas = mesaRepository.findAll().stream().sorted(Comparator.comparing(Mesa::getNumero)).toList();
         platos = platoRepository.findAll();
+        platosPorId = platos.stream().collect(java.util.stream.Collectors.toMap(Plato::getId, p -> p, (a,b) -> a));
+        stockPlatos = stockService.stockDisponible(platos.stream().map(Plato::getId).toList());
+        familiasCarta = catalogoOpcionesService.familiasCarta();
+        platosAgrupados = catalogoOpcionesService.idsPlatosAgrupados();
+        variantesPorFamilia = catalogoOpcionesService.variantesCarta().stream()
+                .collect(java.util.stream.Collectors.groupingBy(VarianteCarta::familiaId));
         categorias = categoriaRepository.findAll().stream().sorted(Comparator.comparing(Categoria::getNombre)).toList();
         dibujarMesas();
         panelCategorias.getChildren().clear();
         String[] colores = {"#d97706", "#2563eb", "#9333ea", "#dc2626", "#16803c", "#475569"};
         int i = 0;
+        List<ItemCarta> items = construirItemsCarta();
         for (Categoria c : categorias) {
-            long disponibles = platos.stream().filter(p -> Boolean.TRUE.equals(p.getDisponible())
-                    && Objects.equals(p.getCategoriaId(), c.getId())).count();
+            long disponibles = items.stream().filter(item -> Objects.equals(item.categoriaId(), c.getId())).count();
             agregarCategoria(c.getId(), c.getNombre() + " (" + disponibles + ")", false, colores[i++ % colores.length]);
         }
         Set<Long> ids = new HashSet<>(categorias.stream().map(Categoria::getId).toList());
-        if (platos.stream().anyMatch(p -> Boolean.TRUE.equals(p.getDisponible()) && !ids.contains(p.getCategoriaId())))
+        if (items.stream().anyMatch(item -> !ids.contains(item.categoriaId())))
             agregarCategoria(null, "SIN CATEGORÍA", true, "#475569");
         if (panelCategorias.getChildren().isEmpty()) panelCategorias.getChildren().add(new Label("No hay categorías."));
     }
@@ -184,13 +227,47 @@ public class MozoController {
     }
 
     @FXML private void filtrarPlatos() {
-        String texto = txtBuscarPlato.getText().toLowerCase(Locale.ROOT);
+        String texto = txtBuscarPlato.getText() == null ? "" : txtBuscarPlato.getText().toLowerCase(Locale.ROOT);
         Set<Long> ids = new HashSet<>(categorias.stream().map(Categoria::getId).toList());
-        lstPlatos.setItems(FXCollections.observableArrayList(platos.stream()
-                .filter(p -> Boolean.TRUE.equals(p.getDisponible()))
-                .filter(p -> sinCategoria ? !ids.contains(p.getCategoriaId()) : Objects.equals(categoriaId, p.getCategoriaId()))
-                .filter(p -> p.getNombre().toLowerCase(Locale.ROOT).contains(texto)).toList()));
+        List<ItemCarta> filtrados = construirItemsCarta().stream()
+                .filter(item -> sinCategoria ? !ids.contains(item.categoriaId()) : Objects.equals(categoriaId, item.categoriaId()))
+                .filter(item -> coincideBusqueda(item, texto))
+                .sorted(Comparator.comparing(ItemCarta::nombre, String.CASE_INSENSITIVE_ORDER))
+                .toList();
+        lstPlatos.setItems(FXCollections.observableArrayList(filtrados));
         lstPlatos.setPlaceholder(new Label("No hay platos disponibles."));
+    }
+
+    private List<ItemCarta> construirItemsCarta() {
+        Map<Long, Plato> porId = platosPorId;
+        List<ItemCarta> items = new ArrayList<>();
+
+        for (FamiliaCarta familia : familiasCarta) {
+            boolean tieneVariantesVisibles = variantesPorFamilia.getOrDefault(familia.id(), List.of()).stream()
+                    .map(VarianteCarta::platoId)
+                    .map(porId::get)
+                    .anyMatch(p -> p != null && Boolean.TRUE.equals(p.getDisponible()) && stockHabilitado(p));
+            if (tieneVariantesVisibles) {
+                items.add(new ItemCarta(familia.id(), null, familia.nombre(), familia.descripcion(), familia.categoriaId()));
+            }
+        }
+
+        for (Plato plato : platos) {
+            if (!Boolean.TRUE.equals(plato.getDisponible()) || platosAgrupados.contains(plato.getId()) || !stockHabilitado(plato)) continue;
+            items.add(new ItemCarta(null, plato, plato.getNombre(), plato.getDescripcion(), plato.getCategoriaId()));
+        }
+        return items;
+    }
+
+    private boolean coincideBusqueda(ItemCarta item, String texto) {
+        if (texto == null || texto.isBlank()) return true;
+        if (item.nombre().toLowerCase(Locale.ROOT).contains(texto)) return true;
+        if (item.descripcion() != null && item.descripcion().toLowerCase(Locale.ROOT).contains(texto)) return true;
+        if (item.esFamilia()) {
+            return variantesPorFamilia.getOrDefault(item.familiaId(), List.of()).stream()
+                    .anyMatch(v -> v.etiqueta().toLowerCase(Locale.ROOT).contains(texto));
+        }
+        return false;
     }
 
     private void dibujarMesas() {
@@ -232,9 +309,16 @@ public class MozoController {
 
     @FXML private void agregarPlato() {
         if (mesaSeleccionada == null || requiereRevision || ocupado) return;
-        Plato p = lstPlatos.getSelectionModel().getSelectedItem();
-        if (p == null) { aviso("Selecciona un producto."); return; }
+        ItemCarta item = lstPlatos.getSelectionModel().getSelectedItem();
+        if (item == null) { aviso("Selecciona un producto."); return; }
+        Plato p = item.esFamilia() ? elegirVariante(item) : item.plato();
+        if (p == null) return;
         int cantidad = spnCantidad.getValue();
+        int yaEnBorrador = nuevos.stream().filter(x -> x.getPlatoId().equals(p.getId()))
+                .mapToInt(x -> x.getCantidad() == null ? 0 : x.getCantidad()).sum();
+        try { stockService.validarStock(p.getId(), yaEnBorrador + cantidad, p.getNombre()); }
+        catch (Exception e) { error(e); return; }
+        // Se agrupa solo en el borrador; nunca se incrementa un renglón ya enviado.
         PedidoDetalle d = nuevos.stream().filter(x -> x.getPlatoId().equals(p.getId())).findFirst().orElse(null);
         if (d == null) {
             d = new PedidoDetalle();
@@ -258,15 +342,32 @@ public class MozoController {
             solicitud.setUsuarioId(usuarioActual.getId());
             solicitud.setObservacionExtra(txtObservacion.getText());
             cuenta = pedidoService.guardarPedidoConDetalles(solicitud, List.copyOf(nuevos));
+            // La transacción ya terminó: quitar borrador ANTES de volver a consultar.
             nuevos.clear(); txtObservacion.clear();
             enviados.clear();
             enviados.addAll(pedidoService.consultarDetalle(cuenta.getId()));
             mesas = mesaRepository.findAll().stream().sorted(Comparator.comparing(Mesa::getNumero)).toList();
-            dibujarMesas();
+            stockPlatos = stockService.stockDisponible(platos.stream().map(Plato::getId).toList());
+            filtrarPlatos(); dibujarMesas();
             aviso("Solo los productos nuevos fueron enviados. Los anteriores siguen en la cuenta.");
         } catch (DataAccessException e) {
-            requiereRevision = true;
-            aviso("No se pudo confirmar el resultado. Pulsa ACTUALIZAR MESAS Y CARTA para comprobar lo guardado antes de reenviar.");
+            String mensajeNegocio = mensajeSqlNegocio(e);
+            if (mensajeNegocio != null) {
+                // Las excepciones P0001 provienen de validaciones controladas de PostgreSQL
+                // (por ejemplo stock insuficiente). La transacción se revierte completa.
+                requiereRevision = false;
+                try {
+                    stockPlatos = stockService.stockDisponible(platos.stream().map(Plato::getId).toList());
+                    filtrarPlatos();
+                } catch (Exception ignorada) {
+                    // El mensaje de negocio sigue siendo el dato principal para el usuario.
+                }
+                aviso(mensajeNegocio);
+            } else {
+                // Para fallos de red/timeout no asumimos si el servidor alcanzó a confirmar.
+                requiereRevision = true;
+                aviso("No se pudo confirmar el resultado. Pulsa ACTUALIZAR MESAS Y CARTA para comprobar lo guardado antes de reenviar.");
+            }
         } catch (Exception e) { error(e); }
         finally { ocupado = false; refrescarVista(); }
     }
@@ -282,6 +383,7 @@ public class MozoController {
         } catch (Exception e) { error(e); }
     }
 
+    // CANCELAR elimina solo el borrador, nunca los consumos guardados.
     @FXML private void cancelarPedido() {
         if (requiereRevision) { aviso("Primero pulsa ACTUALIZAR para verificar el envío."); return; }
         if (nuevos.isEmpty()) { aviso("No hay productos nuevos que descartar. Los enviados se conservan."); return; }
@@ -332,10 +434,125 @@ public class MozoController {
         boolean bloqueado = ocupado || requiereRevision || mesaSeleccionada == null;
         panelCarta.setDisable(bloqueado);
         txtObservacion.setDisable(bloqueado);
-        btnAgregarPlato.setDisable(bloqueado);
+        ItemCarta seleccionado = lstPlatos.getSelectionModel().getSelectedItem();
+        btnAgregarPlato.setDisable(bloqueado || (seleccionado != null && itemAgotado(seleccionado)));
         btnEnviarCocina.setDisable(bloqueado || nuevos.isEmpty());
         btnTerminarPedido.setDisable(bloqueado || cuenta == null || !nuevos.isEmpty());
         btnLiberarMesa.setDisable(bloqueado || cuenta == null);
+    }
+
+    private boolean itemAgotado(ItemCarta item) {
+        if (item == null) return false;
+        if (!item.esFamilia()) return !stockHabilitado(item.plato());
+        Map<Long, Plato> porId = platosPorId;
+        return variantesPorFamilia.getOrDefault(item.familiaId(), List.of()).stream()
+                .map(VarianteCarta::platoId)
+                .map(porId::get)
+                .filter(Objects::nonNull)
+                .filter(p -> Boolean.TRUE.equals(p.getDisponible()))
+                .noneMatch(this::stockHabilitado);
+    }
+
+    private BigDecimal precioMinimoFamilia(Long familiaId) {
+        Map<Long, Plato> porId = platosPorId;
+        return variantesPorFamilia.getOrDefault(familiaId, List.of()).stream()
+                .map(VarianteCarta::platoId)
+                .map(porId::get)
+                .filter(Objects::nonNull)
+                .filter(p -> Boolean.TRUE.equals(p.getDisponible()))
+                .map(Plato::getPrecio)
+                .filter(Objects::nonNull)
+                .min(BigDecimal::compareTo).orElse(null);
+    }
+
+    private String etiquetasFamilia(Long familiaId) {
+        Map<Long, Plato> porId = platosPorId;
+        return variantesPorFamilia.getOrDefault(familiaId, List.of()).stream()
+                .filter(v -> {
+                    Plato p = porId.get(v.platoId());
+                    return p != null && Boolean.TRUE.equals(p.getDisponible());
+                })
+                .map(VarianteCarta::etiqueta)
+                .filter(Objects::nonNull)
+                .collect(java.util.stream.Collectors.joining(" · "));
+    }
+
+    private Plato elegirVariante(ItemCarta item) {
+        Map<Long, Plato> porId = platosPorId;
+        List<VarianteCarta> opciones = variantesPorFamilia.getOrDefault(item.familiaId(), List.of()).stream()
+                .filter(v -> {
+                    Plato p = porId.get(v.platoId());
+                    return p != null && Boolean.TRUE.equals(p.getDisponible()) && stockHabilitado(p);
+                }).toList();
+        if (opciones.isEmpty()) {
+            aviso("Este plato no tiene opciones disponibles.");
+            return null;
+        }
+
+        Dialog<Plato> dialogo = new Dialog<>();
+        dialogo.setTitle(item.nombre());
+        dialogo.setHeaderText("Elige una presentación");
+        ButtonType aceptar = new ButtonType("Seleccionar", ButtonBar.ButtonData.OK_DONE);
+        dialogo.getDialogPane().getButtonTypes().addAll(aceptar, ButtonType.CANCEL);
+
+        ListView<VarianteCarta> lista = new ListView<>(FXCollections.observableArrayList(opciones));
+        lista.setPrefSize(430, Math.min(330, 64.0 * opciones.size() + 20));
+        lista.setCellFactory(l -> new ListCell<>() {
+            @Override protected void updateItem(VarianteCarta v, boolean empty) {
+                super.updateItem(v, empty);
+                setDisable(false); setOpacity(1); setStyle("");
+                if (empty || v == null) { setText(null); return; }
+                Plato p = porId.get(v.platoId());
+                Integer stock = p == null ? null : stockPlatos.get(p.getId());
+                boolean agotado = p == null || !stockHabilitado(p);
+                setText(v.etiqueta() + (p == null ? "" : " — S/ " + p.getPrecio())
+                        + (stock == null ? "" : " — Stock: " + stock)
+                        + (agotado ? " — AGOTADO" : ""));
+                if (agotado) {
+                    setDisable(true); setOpacity(0.48);
+                    setStyle("-fx-background-color:#e5e7eb;-fx-text-fill:#6b7280;");
+                }
+            }
+        });
+        dialogo.getDialogPane().setContent(lista);
+        Button botonAceptar = (Button) dialogo.getDialogPane().lookupButton(aceptar);
+        botonAceptar.setDisable(true);
+        lista.getSelectionModel().selectedItemProperty().addListener((o,a,v) -> {
+            Plato p = v == null ? null : porId.get(v.platoId());
+            botonAceptar.setDisable(p == null || !stockHabilitado(p));
+        });
+        lista.setOnMouseClicked(e -> {
+            if (e.getClickCount() == 2 && !botonAceptar.isDisable()) {
+                botonAceptar.fire();
+            }
+        });
+        dialogo.setResultConverter(b -> {
+            if (b != aceptar) return null;
+            VarianteCarta v = lista.getSelectionModel().getSelectedItem();
+            return v == null ? null : porId.get(v.platoId());
+        });
+        return dialogo.showAndWait().orElse(null);
+    }
+
+    private boolean stockHabilitado(Plato p) {
+        if (p == null) return false;
+        Integer stock = stockPlatos.get(p.getId());
+        return stock != null && stock > 0;
+    }
+
+
+    private String mensajeSqlNegocio(Throwable error) {
+        Throwable actual = error;
+        while (actual != null) {
+            if (actual instanceof SQLException sql && "P0001".equals(sql.getSQLState())) {
+                String mensaje = sql.getMessage();
+                if (mensaje == null || mensaje.isBlank()) return "La operación fue rechazada por una validación de la base de datos.";
+                String primera = mensaje.lines().findFirst().orElse(mensaje).trim();
+                return primera.startsWith("ERROR:") ? primera.substring(6).trim() : primera;
+            }
+            actual = actual.getCause();
+        }
+        return null;
     }
 
     private boolean confirmarSalida() {

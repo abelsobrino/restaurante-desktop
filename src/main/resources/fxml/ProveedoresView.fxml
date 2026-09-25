@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<BorderPane xmlns:fx="http://javafx.com/fxml/1" fx:controller="pe.edu.utp.restaurante.controller.ProveedoresController" prefWidth="1220" prefHeight="780">
+    <top><VBox spacing="5" style="-fx-background-color:#111827;"><padding><Insets top="16" right="22" bottom="16" left="22"/></padding><Label text="Proveedores y compras" style="-fx-text-fill:white;-fx-font-size:24;-fx-font-weight:bold;"/><Label text="Finalizar una compra incrementa el almacén y registra el egreso para Reportes/Caja." style="-fx-text-fill:#d1d5db;"/></VBox></top>
+    <center>
+        <TabPane tabClosingPolicy="UNAVAILABLE">
+            <tabs>
+                <Tab text="Proveedores">
+                    <BorderPane>
+                        <center><TableView fx:id="tblProveedores"/></center>
+                        <right><VBox spacing="8" prefWidth="330" style="-fx-background-color:#f8fafc;"><padding><Insets top="16" right="16" bottom="16" left="16"/></padding>
+                            <Label fx:id="lblModoProveedor" text="Nuevo proveedor" style="-fx-font-size:17;-fx-font-weight:bold;"/>
+                            <TextField fx:id="txtNombre" promptText="Empresa / proveedor"/><TextField fx:id="txtRuc" promptText="RUC (11 dígitos, opcional)"/><TextField fx:id="txtTelefono" promptText="Teléfono"/><TextField fx:id="txtEmail" promptText="Correo"/><TextField fx:id="txtDireccion" promptText="Dirección"/>
+                            <Button fx:id="btnGuardarProveedor" text="Registrar proveedor" onAction="#guardarProveedor" maxWidth="Infinity" style="-fx-background-color:#2563eb;-fx-text-fill:white;-fx-font-weight:bold;"/>
+                            <Button text="Nuevo / limpiar" onAction="#nuevoProveedor" maxWidth="Infinity"/><Button fx:id="btnEstadoProveedor" text="Desactivar / Reactivar" onAction="#cambiarEstadoProveedor" maxWidth="Infinity"/>
+                            <Separator/><Label text="Reporte de proveedores" style="-fx-font-weight:bold;"/><HBox spacing="8"><Button text="PDF" onAction="#exportarProveedoresPdf"/><Button text="Excel" onAction="#exportarProveedoresExcel"/></HBox>
+                            <Button text="Actualizar" onAction="#actualizar" maxWidth="Infinity"/>
+                        </VBox></right>
+                    </BorderPane>
+                </Tab>
+                <Tab text="Registrar compra">
+                    <BorderPane>
+                        <top><GridPane hgap="10" vgap="9"><padding><Insets top="14" right="16" bottom="12" left="16"/></padding>
+                            <Label text="Proveedor" GridPane.rowIndex="0" GridPane.columnIndex="0"/><ComboBox fx:id="cmbProveedorCompra" prefWidth="320" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                            <Label text="Documento" GridPane.rowIndex="0" GridPane.columnIndex="2"/><TextField fx:id="txtDocumento" promptText="Factura / boleta" GridPane.rowIndex="0" GridPane.columnIndex="3"/>
+                            <Label text="Producto / ingrediente" GridPane.rowIndex="1" GridPane.columnIndex="0"/><ComboBox fx:id="cmbIngredienteCompra" prefWidth="320" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+                            <Label text="Cantidad" GridPane.rowIndex="1" GridPane.columnIndex="2"/><HBox spacing="6" GridPane.rowIndex="1" GridPane.columnIndex="3"><TextField fx:id="txtCantidadCompra" promptText="Ej. 300" prefWidth="120"/><ComboBox fx:id="cmbUnidadCompra" prefWidth="105"/></HBox>
+                            <Label text="Costo total" GridPane.rowIndex="2" GridPane.columnIndex="0"/><TextField fx:id="txtCostoTotal" promptText="S/" GridPane.rowIndex="2" GridPane.columnIndex="1"/><Button text="Agregar al voucher" onAction="#agregarItem" GridPane.rowIndex="2" GridPane.columnIndex="3"/>
+                        </GridPane></top>
+                        <center><TableView fx:id="tblCompra"/></center>
+                        <right><VBox spacing="8" prefWidth="270" style="-fx-background-color:#f8fafc;"><padding><Insets top="16" right="16" bottom="16" left="16"/></padding><Label text="Compra" style="-fx-font-size:17;-fx-font-weight:bold;"/><TextArea fx:id="txtObservacion" promptText="Observación" prefRowCount="4" wrapText="true"/><Label fx:id="lblTotalCompra" text="Total compra: S/ 0.00" style="-fx-font-size:16;-fx-font-weight:bold;"/><Button text="Quitar seleccionado" onAction="#quitarItem" maxWidth="Infinity"/><Region VBox.vgrow="ALWAYS"/><Button text="FINALIZAR COMPRA" onAction="#guardarCompra" maxWidth="Infinity" style="-fx-background-color:#16803c;-fx-text-fill:white;-fx-font-weight:bold;"/></VBox></right>
+                    </BorderPane>
+                </Tab>
+                <Tab text="Historial / vouchers">
+                    <SplitPane orientation="VERTICAL" dividerPositions="0.48">
+                        <VBox spacing="6"><Label text="Compras finalizadas" style="-fx-font-size:17;-fx-font-weight:bold;-fx-padding:10 10 0 10;"/><TableView fx:id="tblHistorial" VBox.vgrow="ALWAYS"/></VBox>
+                        <VBox spacing="8" style="-fx-padding:10;"><Label fx:id="lblHistorialCompra" text="Selecciona una compra para ver su voucher." style="-fx-font-weight:bold;"/><TableView fx:id="tblHistorialDetalle" VBox.vgrow="ALWAYS"/><HBox spacing="8" alignment="CENTER_RIGHT"><Label text="Imprimir / exportar voucher:"/><Button text="PDF" onAction="#exportarCompraPdf"/><Button text="Excel" onAction="#exportarCompraExcel"/></HBox></VBox>
+                    </SplitPane>
+                </Tab>
+                <Tab text="Qué abastece / precios">
+                    <BorderPane>
+                        <top><HBox spacing="10" style="-fx-padding:14;"><Label text="Proveedor"/><ComboBox fx:id="cmbProveedorPrecio" prefWidth="320"/></HBox></top>
+                        <center><TableView fx:id="tblPrecios"/></center>
+                        <right><VBox spacing="8" prefWidth="310" style="-fx-background-color:#f8fafc;"><padding><Insets top="16" right="16" bottom="16" left="16"/></padding><Label text="Producto que abastece" style="-fx-font-size:16;-fx-font-weight:bold;"/><ComboBox fx:id="cmbIngredientePrecio" maxWidth="Infinity"/><TextField fx:id="txtPrecioReferencia" promptText="Precio referencia S/"/><TextField fx:id="txtCantidadReferencia" promptText="Cantidad referencia"/><TextField fx:id="txtUnidadCompra" promptText="Unidad compra: KG, caja, saco..."/><Button text="Guardar referencia" onAction="#guardarPrecio" maxWidth="Infinity" style="-fx-background-color:#2563eb;-fx-text-fill:white;"/></VBox></right>
+                    </BorderPane>
+                </Tab>
+            </tabs>
+        </TabPane>
+    </center>
+    <bottom><HBox alignment="CENTER_RIGHT" style="-fx-background-color:#e5e7eb;-fx-padding:10;"><Button text="Cerrar" onAction="#cerrar"/></HBox></bottom>
+</BorderPane>

@@ -41,7 +41,7 @@ public class CocinaController {
         lstPedidos.setCellFactory(l -> new ListCell<>() {
             @Override protected void updateItem(Pedido p, boolean empty) {
                 super.updateItem(p, empty);
-                setText(empty || p == null ? null : "Mesa " + numeroMesa(p) + " — " + p.getCodigo());
+                setText(empty || p == null ? null : etiquetaPedido(p));
                 setStyle(empty ? "" : "-fx-text-fill: #c2410c; -fx-font-weight: bold;");
             }
         });
@@ -71,6 +71,21 @@ public class CocinaController {
         txtObservacion.setEditable(false);
         limpiarDetalle();
         actualizar();
+    }
+
+    private String etiquetaPedido(Pedido p) {
+        if ("WEB".equalsIgnoreCase(p.getOrigen()))
+            return "WEB " + p.getTipo() + " — " + p.getCodigo() + (p.getClienteNombre() == null ? "" : " — " + p.getClienteNombre());
+        return "Mesa " + numeroMesa(p) + " — " + p.getCodigo();
+    }
+
+    private String detalleEntrega(Pedido p) {
+        if (!"WEB".equalsIgnoreCase(p.getOrigen())) return numeroMesa(p);
+        StringBuilder t = new StringBuilder(p.getTipo());
+        if (p.getClienteTelefono() != null && !p.getClienteTelefono().isBlank()) t.append(" | Tel: ").append(p.getClienteTelefono());
+        if ("DELIVERY".equalsIgnoreCase(p.getTipo()) && p.getDireccionEntrega() != null && !p.getDireccionEntrega().isBlank())
+            t.append(" | ").append(p.getDireccionEntrega());
+        return t.toString();
     }
 
     private String numeroMesa(Pedido p) {
@@ -105,12 +120,11 @@ public class CocinaController {
                 .filter(PedidoService::pendienteCocina).toList();
         pedidoSeleccionado = p;
         tblDetalles.setItems(FXCollections.observableArrayList(pendientes));
-        lblCodigo.setText("Código: " + p.getCodigo());
-        lblMesa.setText("Mesa: " + numeroMesa(p));
-        lblFecha.setText("Apertura: " + (p.getCreatedAt() == null ? "-"
-                : p.getCreatedAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))));
+        lblCodigo.setText(p.getCodigo());
+        lblMesa.setText(detalleEntrega(p));
+        lblFecha.setText(p.getCreatedAt() == null ? "-" : p.getCreatedAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")));
         BigDecimal total = pendientes.stream().map(PedidoDetalle::getSubtotal).reduce(BigDecimal.ZERO, BigDecimal::add);
-        lblTotal.setText("Por preparar: S/ " + total.setScale(2));
+        lblTotal.setText("S/ " + total.setScale(2));
         lblEstado.setText(pendientes.isEmpty() ? "Sin productos pendientes" : "Productos pendientes de cocina");
         txtObservacion.setText(String.join("\n", pendientes.stream().map(PedidoDetalle::getObservacionExtra)
                 .filter(Objects::nonNull).filter(s -> !s.isBlank()).distinct().toList()));
@@ -153,8 +167,8 @@ public class CocinaController {
     private void limpiarDetalle() {
         pedidoSeleccionado = null;
         tblDetalles.setItems(FXCollections.observableArrayList());
-        lblCodigo.setText("Código: -"); lblMesa.setText("Mesa: -");
-        lblFecha.setText("Fecha: -"); lblTotal.setText("Por preparar: S/ 0.00");
+        lblCodigo.setText("-"); lblMesa.setText("-");
+        lblFecha.setText("-"); lblTotal.setText("S/ 0.00");
         lblEstado.setText("Selecciona una cuenta con productos pendientes");
         txtObservacion.clear();
         boolean anterior = actualizandoVista;

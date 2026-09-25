@@ -19,6 +19,11 @@
         <SplitPane dividerPositions="0.3" style="-fx-background-color: transparent;">
 
             <VBox spacing="10" style="-fx-padding: 15px;">
+                <Label style="-fx-font-weight: bold; -fx-font-size: 14px;" text="PEDIDOS WEB PAGADOS"/>
+                <ComboBox fx:id="cmbPedidosWeb" promptText="Delivery / Recojo pagados" maxWidth="Infinity"/>
+                <Button text="ACTUALIZAR PEDIDOS WEB" onAction="#actualizarPedidosWeb" maxWidth="Infinity"/>
+                <Label text="Selecciona uno para ver contacto, detalle e imprimir. No se vuelve a cobrar." wrapText="true" style="-fx-text-fill:#475569;"/>
+                <Separator/>
                 <Label style="-fx-font-weight: bold; -fx-font-size: 14px;" text="MESAS"/>
                 <Button text="ACTUALIZAR MESAS" onAction="#actualizarMesas"/>
                 <CheckBox fx:id="chkPagados" text="Ver también pedidos pagados"/>
@@ -61,13 +66,15 @@
 
                 <Separator/>
 
-                <Label style="-fx-font-weight: bold; -fx-font-size: 14px;" text="MÉTODO DE PAGO"/>
-                <ComboBox fx:id="cmbMetodoPago" prefWidth="200.0"/>
-                <TextField fx:id="txtReferencia" promptText="Referencia (opcional)" visible="false"/>
-
+                <VBox fx:id="pnlCobroLocal" spacing="8">
+                    <Label style="-fx-font-weight: bold; -fx-font-size: 14px;" text="MÉTODO DE PAGO"/>
+                    <ComboBox fx:id="cmbMetodoPago" prefWidth="200.0"/>
+                    <TextField fx:id="txtReferencia" promptText="Referencia (opcional)" visible="false"/>
+                    <Button fx:id="btnCobrar" onAction="#cobrar" maxWidth="Infinity" style="-fx-background-color: #2e7d32; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10px 30px;" text="COBRAR"/>
+                </VBox>
+                <Label fx:id="lblPedidoWebPagado" text="PEDIDO WEB PAGADO — solo consulta e impresión" visible="false" managed="false" wrapText="true" style="-fx-text-fill:#16803c;-fx-font-weight:bold;"/>
                 <HBox spacing="10" alignment="CENTER">
                     <Button fx:id="btnComprobante" onAction="#exportarComprobante" text="PDF / IMPRIMIR" disable="true"/>
-                    <Button fx:id="btnCobrar" onAction="#cobrar" style="-fx-background-color: #2e7d32; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10px 30px;" text="COBRAR"/>
                 </HBox>
             </VBox>
 

@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<BorderPane xmlns:fx="http://javafx.com/fxml/1" fx:controller="pe.edu.utp.restaurante.controller.InventarioController" prefWidth="1220" prefHeight="780">
+    <top>
+        <VBox spacing="5" style="-fx-background-color:#111827;">
+            <padding><Insets top="16" right="22" bottom="16" left="22"/></padding>
+            <Label text="Gestión de cocina e inventario" style="-fx-text-fill:white;-fx-font-size:24;-fx-font-weight:bold;"/>
+            <Label fx:id="lblStockBajo" text="Alertas de stock mínimo: 0" style="-fx-text-fill:#fbbf24;-fx-font-weight:bold;"/>
+        </VBox>
+    </top>
+    <center>
+        <TabPane fx:id="tabPaneGestion" tabClosingPolicy="UNAVAILABLE">
+            <tabs>
+                <Tab text="1. Ingredientes y recetas">
+                    <SplitPane dividerPositions="0.48">
+                        <BorderPane>
+                            <top><Label text="Ingredientes generales" style="-fx-font-size:18;-fx-font-weight:bold;-fx-padding:12;"/></top>
+                            <center><TableView fx:id="tblIngredientes"/></center>
+                            <right>
+                                <VBox spacing="8" prefWidth="290" style="-fx-background-color:#f8fafc;">
+                                    <padding><Insets top="14" right="14" bottom="14" left="14"/></padding>
+                                    <Label fx:id="lblModoIngrediente" text="Nuevo ingrediente" style="-fx-font-size:16;-fx-font-weight:bold;"/>
+                                    <TextField fx:id="txtNombreIngrediente" promptText="Nombre"/>
+                                    <TextField fx:id="txtCategoriaIngrediente" promptText="Categoría"/>
+                                    <ComboBox fx:id="cmbUnidad" maxWidth="Infinity"/>
+                                    <TextField fx:id="txtStockMinimo" promptText="Stock mínimo"/>
+                                    <CheckBox fx:id="chkAutomatico" text="Descuento automático al preparar stock" wrapText="true" selected="true"/>
+                                    <Label text="Desmárcalo para aceite u otros insumos cuyo consumo se registra manualmente." wrapText="true" style="-fx-text-fill:#6b7280;"/>
+                                    <Button fx:id="btnGuardarIngrediente" text="Crear ingrediente" onAction="#guardarIngrediente" maxWidth="Infinity" style="-fx-background-color:#2563eb;-fx-text-fill:white;-fx-font-weight:bold;"/>
+                                    <Button text="Nuevo / limpiar" onAction="#nuevoIngrediente" maxWidth="Infinity"/>
+                                    <Button fx:id="btnActivarIngrediente" text="Desactivar / Reactivar" onAction="#cambiarActivoIngrediente" maxWidth="Infinity"/>
+                                </VBox>
+                            </right>
+                        </BorderPane>
+                        <BorderPane>
+                            <top>
+                                <VBox spacing="8" style="-fx-padding:12;">
+                                    <Label text="Ingredientes que contiene cada plato" style="-fx-font-size:18;-fx-font-weight:bold;"/>
+                                    <ComboBox fx:id="cmbPlatoReceta" prefWidth="380"/>
+                                </VBox>
+                            </top>
+                            <center><TableView fx:id="tblReceta"/></center>
+                            <bottom>
+                                <VBox spacing="8" style="-fx-padding:12;-fx-background-color:#f8fafc;">
+                                    <ComboBox fx:id="cmbIngredienteReceta" maxWidth="Infinity" promptText="Ingrediente automático"/>
+                                    <TextField fx:id="txtCantidadReceta" promptText="Cantidad por una porción"/>
+                                    <HBox spacing="8">
+                                        <Button text="Agregar / actualizar" onAction="#guardarIngredienteReceta" style="-fx-background-color:#16803c;-fx-text-fill:white;"/>
+                                        <Button text="Eliminar de receta" onAction="#eliminarIngredienteReceta"/>
+                                    </HBox>
+                                    <HBox spacing="8"><Label text="Reporte receta:"/><Button text="PDF" onAction="#exportarRecetaPdf"/><Button text="Excel" onAction="#exportarRecetaExcel"/></HBox>
+                                    <Label text="Ejemplo: Alitas BBQ x6 = 6 und de alitas + 100 g de papa. Solo los insumos automáticos forman la receta." wrapText="true"/>
+                                </VBox>
+                            </bottom>
+                        </BorderPane>
+                    </SplitPane>
+                </Tab>
+                <Tab text="2. Inventario / almacén">
+                    <BorderPane>
+                        <center><TableView fx:id="tblInventario"/></center>
+                        <right>
+                            <VBox spacing="9" prefWidth="320" style="-fx-background-color:#f8fafc;">
+                                <padding><Insets top="16" right="16" bottom="16" left="16"/></padding>
+                                <Label text="Ajuste manual de almacén" style="-fx-font-size:17;-fx-font-weight:bold;"/>
+                                <Label fx:id="lblIngredienteAjuste" text="Selecciona un ingrediente" wrapText="true"/>
+                                <Label text="Positivo = entrada; negativo = consumo, merma o corrección." wrapText="true"/>
+                                <TextField fx:id="txtAjuste" promptText="Ej. -0.5 o 20"/>
+                                <TextField fx:id="txtMotivoAjuste" promptText="Motivo: aceite usado, conteo físico..."/>
+                                <Button text="Aplicar ajuste" onAction="#ajustarStock" maxWidth="Infinity" style="-fx-background-color:#b45309;-fx-text-fill:white;"/>
+                                <Separator/>
+                                <Label text="Reportes" style="-fx-font-weight:bold;"/>
+                                <HBox spacing="8"><Button text="PDF inventario" onAction="#exportarInventarioPdf"/><Button text="Excel inventario" onAction="#exportarInventarioExcel"/></HBox>
+                                <HBox spacing="8"><Button text="PDF movimientos" onAction="#exportarMovimientosPdf"/><Button text="Excel movimientos" onAction="#exportarMovimientosExcel"/></HBox>
+                                <Button text="Actualizar" onAction="#actualizar" maxWidth="Infinity"/>
+                            </VBox>
+                        </right>
+                        <bottom>
+                            <VBox spacing="5" prefHeight="245">
+                                <Label text="Últimos movimientos de inventario" style="-fx-font-weight:bold;-fx-padding:8 8 0 8;"/>
+                                <TableView fx:id="tblMovimientos" VBox.vgrow="ALWAYS"/>
+                            </VBox>
+                        </bottom>
+                    </BorderPane>
+                </Tab>
+                <Tab text="3. Stock platos / producción">
+                    <BorderPane>
+                        <top>
+                            <VBox spacing="9" style="-fx-padding:16;">
+                                <Label text="Stock preparado para hoy" style="-fx-font-size:20;-fx-font-weight:bold;"/>
+                                <Label text="Todos los platos comienzan en 0 cada día. Cada cantidad ingresada se SUMA a lo ya preparado y disponible. Al agregar producción se descuentan del almacén los ingredientes automáticos de la receta. Sin stock, el plato no se muestra al mozo." wrapText="true"/>
+                                <HBox spacing="10">
+                                    <ComboBox fx:id="cmbPlatoStock" prefWidth="370"/>
+                                    <TextField fx:id="txtStockDiario" promptText="Cantidad a agregar" prefWidth="160"/>
+                                    <Button text="Agregar producción" onAction="#guardarStockDiario" style="-fx-background-color:#16803c;-fx-text-fill:white;-fx-font-weight:bold;"/>
+                                    <Button text="Actualizar" onAction="#actualizar"/>
+                                </HBox>
+                                <Label fx:id="lblStockPlato" text="Disponible hoy: -" style="-fx-font-size:15;-fx-font-weight:bold;"/>
+                            </VBox>
+                        </top>
+                        <center><TableView fx:id="tblProduccion"/></center>
+                        <bottom>
+                            <HBox alignment="CENTER_RIGHT" spacing="8" style="-fx-padding:10;">
+                                <Label text="Exportar producción / stock:"/><Button text="PDF" onAction="#exportarStockPdf"/><Button text="Excel" onAction="#exportarStockExcel"/>
+                            </HBox>
+                        </bottom>
+                    </BorderPane>
+                </Tab>
+            </tabs>
+        </TabPane>
+    </center>
+    <bottom><HBox alignment="CENTER_RIGHT" style="-fx-background-color:#e5e7eb;-fx-padding:10;"><Button text="Cerrar" onAction="#cerrar"/></HBox></bottom>
+</BorderPane>

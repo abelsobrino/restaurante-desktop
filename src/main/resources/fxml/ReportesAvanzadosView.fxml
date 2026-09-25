@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<BorderPane xmlns:fx="http://javafx.com/fxml/1" fx:controller="pe.edu.utp.restaurante.controller.ReportesAvanzadosController" prefWidth="1200" prefHeight="760">
+    <top>
+        <VBox spacing="10" style="-fx-background-color:#111827;">
+            <padding><Insets top="16" right="20" bottom="16" left="20"/></padding>
+            <Label text="Reportes y caja" style="-fx-text-fill:white;-fx-font-size:24;-fx-font-weight:bold;"/>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <Label text="Desde" style="-fx-text-fill:white;"/><DatePicker fx:id="dpDesde"/>
+                <Label text="Hasta" style="-fx-text-fill:white;"/><DatePicker fx:id="dpHasta"/>
+                <Button text="Hoy" onAction="#hoy"/><Button text="Mes actual" onAction="#mesActual"/><Button text="Mes anterior" onAction="#mesAnterior"/><Button text="Año actual" onAction="#anioActual"/><Button text="Año anterior" onAction="#anioAnterior"/>
+                <Button text="Generar" onAction="#generar" style="-fx-background-color:#2563eb;-fx-text-fill:white;-fx-font-weight:bold;"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Button text="PDF" onAction="#exportarPdf"/><Button text="Excel" onAction="#exportarExcel"/>
+            </HBox>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <Label text="Periodo rápido:" style="-fx-text-fill:white;"/><ComboBox fx:id="cmbMesReporte" prefWidth="125"/><Spinner fx:id="spnAnioReporte" prefWidth="95" editable="true"/>
+                <Button text="Aplicar mes" onAction="#aplicarMesSeleccionado"/><Button text="Aplicar año" onAction="#aplicarAnioSeleccionado"/>
+                <Region HBox.hgrow="ALWAYS"/>
+            </HBox>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <CheckBox fx:id="chkComparar" text="Comparar con" style="-fx-text-fill:white;"/>
+                <DatePicker fx:id="dpCompDesde"/><DatePicker fx:id="dpCompHasta"/>
+                <Label fx:id="lblComparacion" style="-fx-text-fill:#fbbf24;-fx-font-weight:bold;"/>
+            </HBox>
+        </VBox>
+    </top>
+    <center>
+        <VBox spacing="10">
+            <padding><Insets top="12" right="15" bottom="12" left="15"/></padding>
+            <GridPane hgap="10" vgap="10">
+                <VBox style="-fx-background-color:#eff6ff;-fx-padding:10;" GridPane.columnIndex="0"><Label text="Ventas"/><Label fx:id="lblVentas" text="S/ 0.00" style="-fx-font-size:18;-fx-font-weight:bold;"/></VBox>
+                <VBox style="-fx-background-color:#f8fafc;-fx-padding:10;" GridPane.columnIndex="1"><Label text="Subtotal"/><Label fx:id="lblSubtotal" text="S/ 0.00" style="-fx-font-size:18;-fx-font-weight:bold;"/></VBox>
+                <VBox style="-fx-background-color:#f8fafc;-fx-padding:10;" GridPane.columnIndex="2"><Label text="IGV"/><Label fx:id="lblIgv" text="S/ 0.00" style="-fx-font-size:18;-fx-font-weight:bold;"/></VBox>
+                <VBox style="-fx-background-color:#fff7ed;-fx-padding:10;" GridPane.columnIndex="3"><Label text="Descuentos"/><Label fx:id="lblDescuentos" text="S/ 0.00" style="-fx-font-size:18;-fx-font-weight:bold;"/></VBox>
+                <VBox style="-fx-background-color:#f0fdf4;-fx-padding:10;" GridPane.columnIndex="4"><Label text="Pedidos"/><Label fx:id="lblPedidos" text="0" style="-fx-font-size:18;-fx-font-weight:bold;"/></VBox>
+                <VBox style="-fx-background-color:#f0fdf4;-fx-padding:10;" GridPane.columnIndex="5"><Label text="Ticket prom."/><Label fx:id="lblTicket" text="S/ 0.00" style="-fx-font-size:18;-fx-font-weight:bold;"/></VBox>
+                <VBox style="-fx-background-color:#fef2f2;-fx-padding:10;" GridPane.columnIndex="0" GridPane.rowIndex="1"><Label text="Compras"/><Label fx:id="lblCompras" text="S/ 0.00" style="-fx-font-size:18;-fx-font-weight:bold;"/></VBox>
+                <VBox style="-fx-background-color:#fef2f2;-fx-padding:10;" GridPane.columnIndex="1" GridPane.rowIndex="1"><Label text="Otros gastos"/><Label fx:id="lblGastos" text="S/ 0.00" style="-fx-font-size:18;-fx-font-weight:bold;"/></VBox>
+                <VBox style="-fx-background-color:#ecfdf5;-fx-padding:10;" GridPane.columnIndex="2" GridPane.rowIndex="1" GridPane.columnSpan="2"><Label text="Resultado del periodo"/><Label fx:id="lblResultado" text="S/ 0.00" style="-fx-font-size:18;-fx-font-weight:bold;"/></VBox>
+                <VBox style="-fx-background-color:#e0f2fe;-fx-padding:10;" GridPane.columnIndex="4" GridPane.rowIndex="1" GridPane.columnSpan="2"><Label text="Saldo acumulado caja"/><Label fx:id="lblSaldoCaja" text="S/ 0.00" style="-fx-font-size:18;-fx-font-weight:bold;"/></VBox>
+            </GridPane>
+            <TabPane VBox.vgrow="ALWAYS" tabClosingPolicy="UNAVAILABLE">
+                <tabs>
+                    <Tab text="Ventas por día"><TableView fx:id="tblDias"/></Tab>
+                    <Tab text="Medios de pago"><TableView fx:id="tblMetodos"/></Tab>
+                    <Tab text="Platos vendidos"><TableView fx:id="tblPlatos"/></Tab>
+                    <Tab text="Ingresos / egresos"><TableView fx:id="tblCaja"/></Tab>
+                    <Tab text="Registrar gasto">
+                        <VBox spacing="10" maxWidth="520">
+                            <padding><Insets top="20" right="20" bottom="20" left="20"/></padding>
+                            <Label text="Otros egresos" style="-fx-font-size:18;-fx-font-weight:bold;"/>
+                            <TextField fx:id="txtCategoriaGasto" promptText="Categoría: servicios, limpieza, mantenimiento..."/>
+                            <TextField fx:id="txtDescripcionGasto" promptText="Descripción"/>
+                            <TextField fx:id="txtMontoGasto" promptText="Monto S/"/>
+                            <Button text="Registrar gasto" onAction="#registrarGasto" style="-fx-background-color:#dc2626;-fx-text-fill:white;"/>
+                        </VBox>
+                    </Tab>
+                </tabs>
+            </TabPane>
+        </VBox>
+    </center>
+    <bottom>
+        <HBox alignment="CENTER_RIGHT" spacing="10" style="-fx-background-color:#e5e7eb;">
+            <padding><Insets top="10" right="15" bottom="10" left="15"/></padding>
+            <Button text="Cerrar" onAction="#cerrar"/>
+        </HBox>
+    </bottom>
+</BorderPane>

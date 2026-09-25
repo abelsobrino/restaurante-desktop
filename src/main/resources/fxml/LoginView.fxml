@@ -28,7 +28,8 @@
     </HBox>
 
     <HBox alignment="CENTER" spacing="10">
-        <Button fx:id="btnLogin" onAction="#handleLogin" prefWidth="200.0" style="-fx-background-color: #1a237e; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 10px 0px; -fx-background-radius: 5px;" text="INGRESAR"/>
+        <Button onAction="#regresar" prefWidth="95.0" style="-fx-background-color:#e5e7eb;-fx-text-fill:#111827;-fx-font-weight:bold;-fx-padding:10px 0px;" text="← REGRESAR"/>
+        <Button fx:id="btnLogin" onAction="#handleLogin" prefWidth="195.0" style="-fx-background-color: #1a237e; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 10px 0px; -fx-background-radius: 5px;" text="INGRESAR"/>
     </HBox>
 
     <Label fx:id="lblError" alignment="CENTER" maxHeight="50.0" maxWidth="300.0" textFill="red" wrapText="true"/>
