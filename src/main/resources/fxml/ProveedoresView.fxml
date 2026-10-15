@@ -35,7 +35,7 @@
                 </Tab>
                 <Tab text="Historial / vouchers">
                     <SplitPane orientation="VERTICAL" dividerPositions="0.48">
-                        <VBox spacing="6"><Label text="Compras finalizadas" style="-fx-font-size:17;-fx-font-weight:bold;-fx-padding:10 10 0 10;"/><TableView fx:id="tblHistorial" VBox.vgrow="ALWAYS"/></VBox>
+                        <VBox spacing="6"><HBox spacing="8" alignment="CENTER_LEFT" style="-fx-padding:10 10 0 10;"><Label text="Compras finalizadas" style="-fx-font-size:17;-fx-font-weight:bold;"/><Button text="Reporte PDF" onAction="#exportarHistorialPdf"/><Button text="Reporte Excel" onAction="#exportarHistorialExcel"/></HBox><TableView fx:id="tblHistorial" VBox.vgrow="ALWAYS"/></VBox>
                         <VBox spacing="8" style="-fx-padding:10;"><Label fx:id="lblHistorialCompra" text="Selecciona una compra para ver su voucher." style="-fx-font-weight:bold;"/><TableView fx:id="tblHistorialDetalle" VBox.vgrow="ALWAYS"/><HBox spacing="8" alignment="CENTER_RIGHT"><Label text="Imprimir / exportar voucher:"/><Button text="PDF" onAction="#exportarCompraPdf"/><Button text="Excel" onAction="#exportarCompraExcel"/></HBox></VBox>
                     </SplitPane>
                 </Tab>

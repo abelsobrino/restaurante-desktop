@@ -19,6 +19,7 @@ import org.springframework.stereotype.Component;
 import pe.edu.utp.restaurante.model.Plato;
 import pe.edu.utp.restaurante.repository.PlatoRepository;
 import pe.edu.utp.restaurante.service.ExportadorTablasService;
+import pe.edu.utp.restaurante.service.ConfiguradorReportes;
 import pe.edu.utp.restaurante.service.InventarioService;
 import pe.edu.utp.restaurante.service.InventarioService.IngredienteFila;
 import pe.edu.utp.restaurante.service.InventarioService.MovimientoFila;
@@ -164,6 +165,8 @@ public class InventarioController {
 
     @FXML private void cambiarActivoIngrediente() {
         if (ingredienteEditando == null) { aviso("Selecciona un ingrediente."); return; }
+        if (!confirmar("Cambiar estado del ingrediente", "¿Deseas " +
+                (ingredienteEditando.activo() ? "desactivar" : "reactivar") + " «" + ingredienteEditando.nombre() + "»?")) return;
         try {
             inventarioService.cambiarActivo(ingredienteEditando.id(), !ingredienteEditando.activo());
             limpiarIngrediente(); actualizar();
@@ -196,7 +199,17 @@ public class InventarioController {
         IngredienteFila i = tblInventario.getSelectionModel().getSelectedItem();
         if (i == null) { aviso("Selecciona un ingrediente del inventario."); return; }
         try {
-            BigDecimal nuevo = inventarioService.ajustarStock(i.id(), decimal(txtAjuste.getText(), false), txtMotivoAjuste.getText());
+            BigDecimal variacion = decimal(txtAjuste.getText(), false);
+            BigDecimal resultante = i.stockActual().add(variacion);
+            if (resultante.signum() < 0) throw new IllegalArgumentException("El stock no puede quedar negativo.");
+            if (txtMotivoAjuste.getText() == null || txtMotivoAjuste.getText().isBlank())
+                throw new IllegalArgumentException("Escribe el motivo del ajuste para mantener la trazabilidad.");
+            if (!confirmar("Confirmar ajuste de inventario", "Ingrediente: " + i.nombre() +
+                    "\nStock actual: " + i.stockActual().toPlainString() +
+                    "\nVariación: " + variacion.toPlainString() +
+                    "\nStock estimado: " + resultante.toPlainString() +
+                    "\nMotivo: " + txtMotivoAjuste.getText().trim())) return;
+            BigDecimal nuevo = inventarioService.ajustarStock(i.id(), variacion, txtMotivoAjuste.getText());
             txtAjuste.clear(); txtMotivoAjuste.clear(); actualizar();
             aviso("Nuevo stock: " + InventarioService.formatearCantidad(nuevo, i.unidadBase()));
         } catch (Exception e) { error(e); }
@@ -229,6 +242,8 @@ public class InventarioController {
         Plato p = cmbPlatoReceta.getValue();
         RecetaFila r = tblReceta.getSelectionModel().getSelectedItem();
         if (p == null || r == null) { aviso("Selecciona un ingrediente de la receta."); return; }
+        if (!confirmar("Quitar ingrediente de receta", "¿Quitar «" + r.ingrediente() +
+                "» de la receta de «" + p.getNombre() + "»?")) return;
         try { inventarioService.eliminarIngredienteReceta(p.getId(), r.ingredienteId()); txtCantidadReceta.clear(); cargarReceta(); }
         catch (Exception e) { error(e); }
     }
@@ -291,8 +306,8 @@ public class InventarioController {
     @FXML private void exportarInventarioPdf() { exportarInventario(true); }
     @FXML private void exportarInventarioExcel() { exportarInventario(false); }
     private void exportarInventario(boolean pdf) {
-        List<List<String>> filas = tblInventario.getItems().stream().map(i -> List.of(i.nombre(), nvl(i.categoria()), InventarioService.formatearCantidad(i.stockActual(), i.unidadBase()), InventarioService.formatearCantidad(i.stockMinimo(), i.unidadBase()), i.descuentoAutomatico()?"Automático":"Manual")).toList();
-        exportar("Inventario_LaFonda", List.of("Ingrediente","Categoría","Stock","Mínimo","Consumo"), filas, pdf);
+        List<List<String>> filas = tblInventario.getItems().stream().map(i -> List.of(i.nombre(), nvl(i.categoria()), InventarioService.formatearCantidad(i.stockActual(), i.unidadBase()), InventarioService.formatearCantidad(i.stockMinimo(), i.unidadBase()), InventarioService.formatearCantidad(i.stockMinimo().subtract(i.stockActual()).max(BigDecimal.ZERO), i.unidadBase()), i.descuentoAutomatico()?"Automático":"Manual", i.stockActual().compareTo(i.stockMinimo())<=0?"STOCK BAJO":"NORMAL")).toList();
+        exportar("Inventario_LaFonda", List.of("Ingrediente","Categoría","Stock","Mínimo","Cantidad a reponer","Consumo","Alerta de stock"), filas, pdf);
     }
 
     @FXML private void exportarStockPdf() { exportarStock(true); }
@@ -303,14 +318,17 @@ public class InventarioController {
     }
 
     private void exportar(String nombre, List<String> columnas, List<List<String>> filas, boolean pdf) {
+        var configuracion = ConfiguradorReportes.configurar(tabPaneGestion.getScene().getWindow(), nombre, columnas, filas);
+        if (configuracion.isEmpty()) return;
+        var seleccion = configuracion.get();
         FileChooser fc = new FileChooser();
         fc.getExtensionFilters().add(new FileChooser.ExtensionFilter(pdf ? "PDF" : "Excel", pdf ? "*.pdf" : "*.xlsx"));
         fc.setInitialFileName(nombre + (pdf ? ".pdf" : ".xlsx"));
         File f = fc.showSaveDialog(tabPaneGestion.getScene().getWindow());
         if (f == null) return;
         try {
-            if (pdf) exportador.exportarPdf(nombre.replace('_',' '), columnas, filas, f.toPath());
-            else exportador.exportarXlsx(nombre.replace('_',' '), columnas, filas, f.toPath());
+            if (pdf) exportador.exportarPdf(seleccion.titulo(), seleccion.columnas(), seleccion.filas(), f.toPath());
+            else exportador.exportarXlsx(seleccion.titulo(), seleccion.columnas(), seleccion.filas(), f.toPath());
             abrir(f); aviso("Reporte guardado en:\n" + f.getAbsolutePath());
         } catch (Exception e) { error(e); }
     }
@@ -333,6 +351,12 @@ public class InventarioController {
     private static BigDecimal decimal(String s, boolean vacioCero) { if (s == null || s.isBlank()) { if (vacioCero) return BigDecimal.ZERO; throw new IllegalArgumentException("Completa la cantidad."); } try { return new BigDecimal(s.trim().replace(',','.')); } catch (NumberFormatException e) { throw new IllegalArgumentException("Número inválido: " + s); } }
     private static int enteroPositivo(String s) { try { int v=Integer.parseInt(s == null ? "" : s.trim()); if(v<=0) throw new NumberFormatException(); return v; } catch(Exception e){ throw new IllegalArgumentException("La cantidad a agregar debe ser un número entero mayor que 0."); } }
     private static String nvl(String s) { return s == null ? "" : s; }
+    private boolean confirmar(String titulo, String mensaje) {
+        Alert alerta = new Alert(Alert.AlertType.CONFIRMATION, mensaje, ButtonType.YES, ButtonType.NO);
+        alerta.setTitle(titulo);
+        alerta.setHeaderText("Revisa la operación antes de continuar");
+        return alerta.showAndWait().filter(ButtonType.YES::equals).isPresent();
+    }
     private void aviso(String s) { Alert a=new Alert(Alert.AlertType.INFORMATION,s,ButtonType.OK); a.setHeaderText(null); a.showAndWait(); }
     private void error(Exception e) { aviso(e instanceof IllegalArgumentException || e instanceof IllegalStateException ? e.getMessage() : "No se pudo completar la operación: " + e.getMessage()); }
 }

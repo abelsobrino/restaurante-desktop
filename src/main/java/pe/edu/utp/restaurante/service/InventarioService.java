@@ -100,7 +100,8 @@ public class InventarioService {
     public BigDecimal ajustarStock(Long ingredienteId, BigDecimal delta, String motivo) {
         if (ingredienteId == null) throw new IllegalArgumentException("Selecciona un ingrediente.");
         if (delta == null || delta.signum() == 0) throw new IllegalArgumentException("Ingresa una variación distinta de cero.");
-        String texto = motivo == null || motivo.isBlank() ? "Ajuste manual desde administrador" : motivo.trim();
+        if (motivo == null || motivo.isBlank()) throw new IllegalArgumentException("El ajuste requiere un motivo.");
+        String texto = motivo.trim();
         try {
             return jdbc.queryForObject(
                     "select ajustar_stock_ingrediente(?, ?, ?)", BigDecimal.class,

@@ -34,6 +34,77 @@ import java.util.List;
 @org.springframework.context.annotation.Scope("prototype")
 public class CajaController {
     @Autowired private pe.edu.utp.restaurante.service.CobroService cobroService;
+    @Autowired private pe.edu.utp.restaurante.service.CierreCajaService cierreCajaService;
+    @Autowired private pe.edu.utp.restaurante.service.AuditoriaService auditoriaService;
+
+    @FXML private void verAuditoria() {
+        try {
+            if (usuarioActual == null || !"ADMIN".equalsIgnoreCase(usuarioActual.getRol()) && !"ADMINISTRADOR".equalsIgnoreCase(usuarioActual.getRol())) {
+                mostrarMensaje("El historial está disponible únicamente para administración.", "error");
+                return;
+            }
+            var eventos = auditoriaService.recientes();
+            TextArea area = new TextArea(String.join("\n", eventos));
+            area.setEditable(false);
+            area.setWrapText(true);
+            area.setPrefSize(850, 480);
+            Alert ventana = new Alert(Alert.AlertType.INFORMATION);
+            ventana.setTitle("Historial de operaciones");
+            ventana.setHeaderText("Últimos 100 movimientos auditados");
+            ventana.getDialogPane().setContent(area);
+            ventana.showAndWait();
+        } catch (Exception e) {
+            mostrarMensaje("No se pudo consultar el historial: " + e.getMessage(), "error");
+        }
+    }
+
+
+    @FXML private void cerrarCaja() {
+        try {
+            var resumen = cierreCajaService.consultar(usuarioActual == null ? null : usuarioActual.getId());
+            if (resumen.operaciones() == 0) {
+                mostrarMensaje("No hay nuevos cobros para cerrar caja.", "error");
+                return;
+            }
+            Dialog<ButtonType> dialogo = new Dialog<>();
+            dialogo.setTitle("Cierre de caja");
+            dialogo.setHeaderText("Cobros del usuario actual");
+            ButtonType confirmar = new ButtonType("Registrar cierre", ButtonBar.ButtonData.OK_DONE);
+            dialogo.getDialogPane().getButtonTypes().addAll(confirmar, ButtonType.CANCEL);
+            javafx.scene.layout.VBox contenido = new javafx.scene.layout.VBox(8);
+            contenido.setStyle("-fx-padding: 16;");
+            contenido.getChildren().add(new Label("Desde: " + resumen.inicio().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"))));
+            contenido.getChildren().add(new Label("Hasta: " + resumen.fin().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"))));
+            resumen.metodos().forEach((metodo, importe) -> contenido.getChildren().add(new Label(metodo + ": S/ " + importe)));
+            Label total = new Label("Total cobrado: S/ " + resumen.total() + " (" + resumen.operaciones() + " cobros)");
+            total.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
+            contenido.getChildren().add(total);
+            Label efectivoEsperado = new Label("Efectivo esperado: S/ " + resumen.metodos().get("EFECTIVO"));
+            efectivoEsperado.setStyle("-fx-font-weight: bold;");
+            contenido.getChildren().add(efectivoEsperado);
+            TextField contado = new TextField();
+            contado.setPromptText("Efectivo contado (S/)");
+            TextArea observacion = new TextArea();
+            observacion.setPromptText("Observaciones del cierre o diferencia encontrada");
+            observacion.setPrefRowCount(2);
+            contenido.getChildren().addAll(new Label("Efectivo contado (solo billetes y monedas):"), contado, new Label("Observaciones:"), observacion);
+            dialogo.getDialogPane().setContent(contenido);
+            if (dialogo.showAndWait().orElse(ButtonType.CANCEL) != confirmar) return;
+            BigDecimal importe = new BigDecimal(contado.getText().trim().replace(',', '.'));
+            var confirmacion = new Alert(Alert.AlertType.CONFIRMATION,
+                    "Total cobrado: S/ " + resumen.total() + "\nEfectivo esperado: S/ " + resumen.metodos().get("EFECTIVO") + "\nEfectivo contado: S/ " + importe +
+                    "\nDiferencia de efectivo: S/ " + importe.subtract(resumen.metodos().get("EFECTIVO")) + "\n\n¿Registrar el cierre?",
+                    ButtonType.YES, ButtonType.NO);
+            if (confirmacion.showAndWait().orElse(ButtonType.NO) != ButtonType.YES) return;
+            cierreCajaService.cerrar(usuarioActual == null ? null : usuarioActual.getId(), importe, observacion.getText(), resumen.inicio(), resumen.fin());
+            mostrarMensaje("Cierre de caja registrado correctamente.", "success");
+        } catch (NumberFormatException e) {
+            mostrarMensaje("Ingresa un importe contado válido.", "error");
+        } catch (Exception e) {
+            mostrarMensaje("No se pudo cerrar caja: " + e.getMessage(), "error");
+        }
+    }
+
     @Autowired private pe.edu.utp.restaurante.service.ComprobanteService comprobanteService;
     @Autowired private pe.edu.utp.restaurante.repository.UsuarioRepository usuarioRepository;
     @FXML private javafx.scene.layout.TilePane panelMesas;

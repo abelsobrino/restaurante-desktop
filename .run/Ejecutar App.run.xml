@@ -6,7 +6,11 @@
         <MavenRunnerSettings>
           <option name="delegateBuildToMaven" value="false" />
           <option name="environmentProperties">
-            <map />
+            <map>
+              <entry key="LAFONDA_DB_PASSWORD" value="rest-la-fonda" />
+              <entry key="LAFONDA_DB_URL" value="jdbc:postgresql://aws-0-us-west-2.pooler.supabase.com:5432/postgres?sslmode=require" />
+              <entry key="LAFONDA_DB_USER" value="postgres.lritngtcgzjydgybjxct" />
+            </map>
           </option>
           <option name="jreName" value="21" />
           <option name="mavenProperties">

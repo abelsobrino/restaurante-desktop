@@ -12,7 +12,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class ReporteAvanzadoService {
     private final JdbcTemplate jdbc;
-    public ReporteAvanzadoService(JdbcTemplate jdbc){this.jdbc=jdbc;}
+    private final AuditoriaService auditoria;
+    public ReporteAvanzadoService(JdbcTemplate jdbc, AuditoriaService auditoria){this.jdbc=jdbc;this.auditoria=auditoria;}
 
     public record Resumen(BigDecimal ventas,BigDecimal subtotal,BigDecimal igv,BigDecimal descuentos,BigDecimal delivery,long pedidos,BigDecimal ticketPromedio,BigDecimal compras,BigDecimal gastos,BigDecimal saldoCajaAcumulado){
         public BigDecimal resultadoEstimado(){return ventas.subtract(compras).subtract(gastos).setScale(2,RoundingMode.HALF_UP);}
@@ -76,6 +77,7 @@ public class ReporteAvanzadoService {
         if(descripcion==null||descripcion.isBlank())throw new IllegalArgumentException("La descripción del gasto es obligatoria.");
         if(monto==null||monto.signum()<=0)throw new IllegalArgumentException("El monto debe ser mayor que cero.");
         jdbc.update("insert into gastos(usuario_id,categoria,descripcion,monto) values(?,?,?,?)",usuarioId,categoria.trim(),descripcion.trim(),monto.setScale(2,RoundingMode.HALF_UP));
+        auditoria.registrar(usuarioId, "REGISTRAR_GASTO", "gastos", categoria.trim(), monto.toPlainString() + " - " + descripcion.trim());
     }
     public BigDecimal variacionPorcentual(Reporte actual,Reporte anterior){BigDecimal base=anterior.resumen().ventas();if(base.signum()==0)return actual.resumen().ventas().signum()==0?BigDecimal.ZERO:null;return actual.resumen().ventas().subtract(base).multiply(new BigDecimal("100")).divide(base,2,RoundingMode.HALF_UP);}
     private static BigDecimal dinero(BigDecimal v){return(v==null?BigDecimal.ZERO:v).setScale(2,RoundingMode.HALF_UP);}

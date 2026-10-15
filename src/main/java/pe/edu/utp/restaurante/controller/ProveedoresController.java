@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import pe.edu.utp.restaurante.service.ExportadorTablasService;
+import pe.edu.utp.restaurante.service.ConfiguradorReportes;
 import pe.edu.utp.restaurante.service.InventarioService;
 import pe.edu.utp.restaurante.service.InventarioService.IngredienteFila;
 import pe.edu.utp.restaurante.service.ProveedorService;
@@ -159,6 +160,14 @@ public class ProveedoresController {
         var filas=tblProveedores.getItems().stream().map(p->List.of(p.nombre(),nvl(p.ruc()),nvl(p.telefono()),nvl(p.email()),nvl(p.direccion()),p.activo()?"ACTIVO":"INACTIVO")).toList();
         exportar("Proveedores_LaFonda",List.of("Proveedor","RUC","Teléfono","Correo","Dirección","Estado"),filas,pdf);
     }
+    @FXML private void exportarHistorialPdf(){exportarHistorial(true);}
+    @FXML private void exportarHistorialExcel(){exportarHistorial(false);}
+    private void exportarHistorial(boolean pdf){
+        var filas=tblHistorial.getItems().stream().map(c->List.of(
+                c.fecha().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")), c.proveedor(),
+                nvl(c.documento()), "S/ "+money(c.total()), c.estado())).toList();
+        exportar("Historial_Compras_LaFonda",List.of("Fecha","Proveedor","Documento","Total","Estado"),filas,pdf);
+    }
     @FXML private void exportarCompraPdf(){exportarCompra(true);}@FXML private void exportarCompraExcel(){exportarCompra(false);}
     private void exportarCompra(boolean pdf){
         CompraFila c=tblHistorial.getSelectionModel().getSelectedItem();if(c==null){aviso("Selecciona una compra del historial.");return;}
@@ -166,8 +175,9 @@ public class ProveedoresController {
         exportar("Compra_"+c.id()+"_"+c.proveedor().replaceAll("[^A-Za-z0-9_-]","_"),List.of("Producto","Cantidad comprada","Ingreso inventario","Costo"),filas,pdf);
     }
     private void exportar(String nombre,List<String> cols,List<List<String>> filas,boolean pdf){
+        var configuracion=ConfiguradorReportes.configurar(tblProveedores.getScene().getWindow(),nombre,cols,filas);if(configuracion.isEmpty())return;var seleccion=configuracion.get();
         FileChooser fc=new FileChooser();fc.getExtensionFilters().add(new FileChooser.ExtensionFilter(pdf?"PDF":"Excel",pdf?"*.pdf":"*.xlsx"));fc.setInitialFileName(nombre+(pdf?".pdf":".xlsx"));File f=fc.showSaveDialog(tblProveedores.getScene().getWindow());if(f==null)return;
-        try{if(pdf)exportador.exportarPdf(nombre.replace('_',' '),cols,filas,f.toPath());else exportador.exportarXlsx(nombre.replace('_',' '),cols,filas,f.toPath());abrir(f);aviso("Archivo guardado en:\n"+f.getAbsolutePath());}catch(Exception e){error(e);}
+        try{if(pdf)exportador.exportarPdf(seleccion.titulo(),seleccion.columnas(),seleccion.filas(),f.toPath());else exportador.exportarXlsx(seleccion.titulo(),seleccion.columnas(),seleccion.filas(),f.toPath());abrir(f);aviso("Archivo guardado en:\n"+f.getAbsolutePath());}catch(Exception e){error(e);}
     }
 
     @FXML private void cerrar(){((Stage)tblProveedores.getScene().getWindow()).close();}

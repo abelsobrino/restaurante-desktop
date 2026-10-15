@@ -16,6 +16,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import pe.edu.utp.restaurante.service.ExportadorReportesService;
+import pe.edu.utp.restaurante.service.ExportadorTablasService;
+import pe.edu.utp.restaurante.service.ConfiguradorReportes;
+import java.util.List;
 import pe.edu.utp.restaurante.service.ReporteAvanzadoService;
 import pe.edu.utp.restaurante.service.ReporteAvanzadoService.*;
 
@@ -25,6 +28,7 @@ public class ReportesAvanzadosController {
     private Long usuarioId;
     @Autowired private ReporteAvanzadoService reporteService;
     @Autowired private ExportadorReportesService exportador;
+    @Autowired private ExportadorTablasService exportadorTablas;
 
     @FXML private DatePicker dpDesde, dpHasta, dpCompDesde, dpCompHasta;
     @FXML private ComboBox<String> cmbMesReporte;
@@ -163,24 +167,74 @@ public class ReportesAvanzadosController {
     @FXML private void exportarExcel() { exportar(false); }
     private void exportar(boolean pdf) {
         if (actual == null) { aviso("Primero genera un reporte."); return; }
+        ChoiceDialog<String> opciones = new ChoiceDialog<>("Reporte completo", List.of(
+                "Reporte completo", "Ventas por día", "Métodos de pago", "Platos vendidos", "Movimientos de caja", "Resumen financiero"));
+        opciones.setTitle("Reportes personalizados");
+        opciones.setHeaderText("Selecciona la sección del reporte que deseas descargar");
+        opciones.setContentText("Sección:");
+        var elegido = opciones.showAndWait();
+        if (elegido.isEmpty()) return;
+        String seccion = elegido.get();
+        if ("Reporte completo".equals(seccion)) {
+            FileChooser completo = new FileChooser();
+            completo.getExtensionFilters().add(new FileChooser.ExtensionFilter(pdf ? "PDF" : "Excel", pdf ? "*.pdf" : "*.xlsx"));
+            completo.setInitialFileName("LaFonda_Reporte_Completo_" + actual.desde() + "_" + actual.hasta() + (pdf ? ".pdf" : ".xlsx"));
+            File destino = completo.showSaveDialog(tblDias.getScene().getWindow());
+            if (destino == null) return;
+            try {
+                if (pdf) { exportador.exportarPdf(actual, destino.toPath()); abrirArchivo(destino); }
+                else exportador.exportarXlsx(actual, destino.toPath());
+                aviso("Reporte completo guardado en:\n" + destino.getAbsolutePath());
+            } catch (Exception e) { error(e); }
+            return;
+        }
+        List<String> columnas;
+        List<List<String>> filas;
+        switch (seccion) {
+            case "Métodos de pago" -> {
+                columnas = List.of("Método", "Operaciones", "Total (S/)");
+                filas = actual.metodos().stream().map(x -> List.of(x.metodo(), String.valueOf(x.operaciones()), money(x.total()))).toList();
+            }
+            case "Platos vendidos" -> {
+                columnas = List.of("Plato", "Unidades", "Importe (S/)");
+                filas = actual.topPlatos().stream().map(x -> List.of(x.plato(), String.valueOf(x.unidades()), money(x.importe()))).toList();
+            }
+            case "Movimientos de caja" -> {
+                columnas = List.of("Fecha", "Tipo", "Descripción", "Monto (S/)");
+                filas = actual.movimientosCaja().stream().map(x -> List.of(x.fecha().toString().replace('T',' '), x.tipo(), x.descripcion(), money(x.monto()))).toList();
+            }
+            case "Resumen financiero" -> {
+                columnas = List.of("Indicador", "Valor");
+                var r = actual.resumen();
+                filas = List.of(List.of("Ventas cobradas", money(r.ventas())),
+                        List.of("Subtotal", money(r.subtotal())), List.of("IGV", money(r.igv())),
+                        List.of("Descuentos", money(r.descuentos())), List.of("Delivery", money(r.delivery())),
+                        List.of("Pedidos", String.valueOf(r.pedidos())), List.of("Ticket promedio", money(r.ticketPromedio())),
+                        List.of("Compras", money(r.compras())), List.of("Gastos", money(r.gastos())),
+                        List.of("Resultado estimado", money(r.resultadoEstimado())),
+                        List.of("Saldo acumulado de caja", money(r.saldoCajaAcumulado())));
+            }
+            default -> {
+                columnas = List.of("Fecha", "Pedidos", "Total (S/)");
+                filas = actual.porDia().stream().map(x -> List.of(x.fecha().toString(), String.valueOf(x.pedidos()), money(x.total()))).toList();
+            }
+        }
+        String titulo = "La Fonda - " + seccion + " - " + actual.desde() + " al " + actual.hasta();
+        var personalizado = ConfiguradorReportes.configurar(tblDias.getScene().getWindow(), titulo, columnas, filas);
+        if (personalizado.isEmpty()) return;
+        var datos = personalizado.get();
         FileChooser fc = new FileChooser();
         fc.setTitle(pdf ? "Guardar reporte PDF" : "Guardar reporte Excel");
-        String ext = pdf ? "*.pdf" : "*.xlsx";
-        fc.getExtensionFilters().add(new FileChooser.ExtensionFilter(pdf ? "PDF" : "Excel", ext));
-        fc.setInitialFileName("LaFonda_Reporte_" + actual.desde() + "_" + actual.hasta() + (pdf ? ".pdf" : ".xlsx"));
+        fc.getExtensionFilters().add(new FileChooser.ExtensionFilter(pdf ? "PDF" : "Excel", pdf ? "*.pdf" : "*.xlsx"));
+        fc.setInitialFileName("LaFonda_" + seccion.replace(' ', '_') + "_" + actual.desde() + "_" + actual.hasta() + (pdf ? ".pdf" : ".xlsx"));
         File f = fc.showSaveDialog(tblDias.getScene().getWindow());
         if (f == null) return;
         try {
-            if (pdf) {
-                exportador.exportarPdf(actual, f.toPath());
-                abrirArchivo(f);
-            } else {
-                exportador.exportarXlsx(actual, f.toPath());
-            }
+            if (pdf) { exportadorTablas.exportarPdf(datos.titulo(), datos.columnas(), datos.filas(), f.toPath()); abrirArchivo(f); }
+            else exportadorTablas.exportarXlsx(datos.titulo(), datos.columnas(), datos.filas(), f.toPath());
             aviso("Reporte guardado correctamente en:\n" + f.getAbsolutePath());
         } catch (Exception e) { error(e); }
     }
-
 
     private void abrirArchivo(File archivo) {
         try {
