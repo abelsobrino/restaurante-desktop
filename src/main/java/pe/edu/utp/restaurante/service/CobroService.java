@@ -14,6 +14,7 @@ public class CobroService {
     @Autowired private PedidoRepository pedidos;
     @Autowired private PagoRepository pagos;
     @Autowired private MesaRepository mesas;
+    @Autowired private ReservaService reservas;
 
     @Transactional
     public Pago cobrar(Long pedidoId, Long cajeroId, String metodo, String referencia) {
@@ -39,6 +40,7 @@ public class CobroService {
         pedido.setFechaCierre(pago.getCreatedAt());
         pedido.setUpdatedAt(pago.getCreatedAt());
         pedidos.saveAndFlush(pedido);
+        if (pedido.getMesaId() != null) { mesas.bloquearPorId(pedido.getMesaId()).orElseThrow(); reservas.terminarPedido(pedidoId, true); }
         if (pedido.getMesaId() != null && pedidos.findFirstByMesaIdAndEstadoInOrderByCreatedAtDesc(
                 pedido.getMesaId(), List.of("PENDIENTE", "EN_PROCESO", "LISTO", "TERMINADO")).isEmpty()) {
             mesas.findById(pedido.getMesaId()).ifPresent(m -> { m.setEstado("DISPONIBLE"); mesas.save(m); });

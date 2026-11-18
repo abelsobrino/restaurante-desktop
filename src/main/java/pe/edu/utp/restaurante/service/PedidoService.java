@@ -18,6 +18,7 @@ public class PedidoService {
     @Autowired private PedidoDetalleRepository pedidoDetalleRepository;
     @Autowired private PlatoRepository platoRepository;
     @Autowired private StockService stockService;
+    @Autowired private ReservaService reservas;
 
     public static boolean pendienteCocina(PedidoDetalle d) {
         return "PENDIENTE".equals(d.getEstado()) || "EN_PROCESO".equals(d.getEstado());
@@ -36,6 +37,7 @@ public class PedidoService {
             if (pedidoRepository.findFirstByMesaIdAndEstadoInOrderByCreatedAtDesc(
                     mesa.getId(), List.of("PENDIENTE", "EN_PROCESO", "LISTO", "TERMINADO")).isPresent())
                 throw new IllegalStateException("La mesa ya tiene una cuenta. Actualiza antes de enviar.");
+            ReservaService.Reserva reserva = reservas.validarNuevaCuenta(mesa);
             cuenta = new Pedido();
             cuenta.setCodigo("PED-" + UUID.randomUUID().toString().replace("-", "").substring(0, 16));
             cuenta.setMesaId(mesa.getId());
@@ -44,7 +46,9 @@ public class PedidoService {
             cuenta.setOrigen("PRESENCIAL");
             cuenta.setEstado("EN_PROCESO");
             cuenta.setCreatedAt(LocalDateTime.now());
+            if (reserva != null) { cuenta.setClienteNombre(reserva.nombre()); cuenta.setClienteTelefono(reserva.telefono()); }
             cuenta = pedidoRepository.saveAndFlush(cuenta);
+            reservas.vincular(reserva, cuenta.getId());
         } else {
             cuenta = pedidoRepository.bloquearPorId(solicitud.getId()).orElseThrow();
             comprobarAbierto(cuenta);
@@ -178,6 +182,7 @@ public class PedidoService {
         if (pedidoId == null) return;
         Pedido cuenta = pedidoRepository.bloquearPorId(pedidoId).orElseThrow();
         comprobarAbierto(cuenta);
+        if (cuenta.getMesaId() != null) { mesaRepository.bloquearPorId(cuenta.getMesaId()).orElseThrow(); reservas.terminarPedido(pedidoId, false); }
         cuenta.setEstado("CANCELADO");
         cuenta.setCerrado(true);
         cuenta.setUpdatedAt(LocalDateTime.now());

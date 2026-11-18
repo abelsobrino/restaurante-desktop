@@ -41,6 +41,10 @@ public class AdminController {
     @FXML private TableView<pe.edu.utp.restaurante.model.Pago> tblVentas;
     @FXML private ListView<String> lstMasVendidos;
     @FXML private Label lblActualizacion;
+    @FXML private Tab tabReservas;
+    @FXML private Label lblReservasHoy;
+    @Autowired private pe.edu.utp.restaurante.service.ReservaService reservas;
+    @Autowired private ReservaPanel reservaPanel;
 
     private void configurarVentas() {
         TableColumn<pe.edu.utp.restaurante.model.Pago, String> fecha = new TableColumn<>("Fecha de pago");
@@ -124,6 +128,7 @@ public class AdminController {
 
     @FXML
     public void initialize() {
+        reservaPanel.instalar(tabReservas, lblReservasHoy, this::cargarMesas);
         configurarVentas();
         pe.edu.utp.restaurante.util.RefrescoVisible.cada30Segundos(tblVentas, this::cargarEstadisticas);
         System.out.println("[ADMIN] Inicializando controlador...");
@@ -203,7 +208,7 @@ public class AdminController {
 
     public void setUsuario(Usuario usuario) {
         this.usuarioActual = usuario;
-        javafx.application.Platform.runLater(this::notificarStockBajo);
+        javafx.application.Platform.runLater(() -> { reservaPanel.avisoInicio(); notificarStockBajo(); });
     }
 
     private void notificarStockBajo() {
@@ -262,7 +267,10 @@ public class AdminController {
         colCapacidad.setCellValueFactory(new PropertyValueFactory<>("capacidad"));
         TableColumn<Mesa, String> colEstado = new TableColumn<>("Estado");
         colEstado.setCellValueFactory(new PropertyValueFactory<>("estado"));
-        tblMesas.getColumns().addAll(colNumero, colCapacidad, colEstado);
+        TableColumn<Mesa,String> colReserva = new TableColumn<>("Estado operativo");
+        colReserva.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(reservas.estadoMesa(c.getValue(), reservasActivas)));
+        colReserva.setPrefWidth(190);
+        tblMesas.getColumns().addAll(colNumero, colCapacidad, colEstado, colReserva);
     }
 
     private void configurarTablaPlatos() {
@@ -328,13 +336,14 @@ public class AdminController {
             if (mesa.getId() == null) {
                 mesa.setCreatedAt(LocalDateTime.now());
             }
-            mesaRepository.save(mesa);
+            reservas.guardarMesa(mesa);
             cargarMesas();
+            reservaPanel.actualizar();
             limpiarFormularioMesa();
             mostrarAlerta("Éxito", "Mesa guardada", Alert.AlertType.INFORMATION);
         } catch (NumberFormatException e) {
             mostrarAlerta("Error", "Ingrese números válidos", Alert.AlertType.ERROR);
-        }
+        } catch (Exception e) { mostrarAlerta("Mesa", "No se pudo guardar la mesa. " + e.getMessage(), Alert.AlertType.ERROR); }
     }
 
     @FXML
@@ -344,9 +353,9 @@ public class AdminController {
             mostrarAlerta("Error", "Seleccione una mesa", Alert.AlertType.ERROR);
             return;
         }
-        mesaRepository.delete(mesa);
-        cargarMesas();
-        mostrarAlerta("Éxito", "Mesa eliminada", Alert.AlertType.INFORMATION);
+        try { reservas.eliminarMesa(mesa.getId()); cargarMesas(); reservaPanel.actualizar();
+            mostrarAlerta("Éxito", "Mesa eliminada", Alert.AlertType.INFORMATION);
+        } catch (Exception e) { mostrarAlerta("Mesa", "No se pudo eliminar la mesa. " + e.getMessage(), Alert.AlertType.ERROR); }
     }
 
     @FXML
@@ -495,7 +504,9 @@ public class AdminController {
         }
     }
 
+    private java.util.List<pe.edu.utp.restaurante.service.ReservaService.Reserva> reservasActivas = java.util.List.of();
     private void cargarMesas() {
+        try { reservasActivas = reservas.activas(); } catch (Exception e) { reservasActivas = java.util.List.of(); }
         if (tblMesas != null) {
             tblMesas.setItems(FXCollections.observableArrayList(mesaRepository.findAll()));
         }

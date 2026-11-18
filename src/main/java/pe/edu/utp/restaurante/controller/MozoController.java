@@ -29,6 +29,7 @@ import pe.edu.utp.restaurante.service.StockService;
 @Scope("prototype")
 public class MozoController {
     @Autowired private MesaRepository mesaRepository;
+    @Autowired private pe.edu.utp.restaurante.service.ReservaService reservas;
     @Autowired private PlatoRepository platoRepository;
     @Autowired private CategoriaRepository categoriaRepository;
     @Autowired private PedidoRepository pedidoRepository;
@@ -107,6 +108,7 @@ public class MozoController {
         txtBuscarPlato.textProperty().addListener((o, a, b) -> filtrarPlatos());
         lstPlatos.getSelectionModel().selectedItemProperty().addListener((o,a,b) -> refrescarVista());
         configurarTabla();
+        pe.edu.utp.restaurante.util.RefrescoVisible.cada30Segundos(panelMesas, () -> { if (!ocupado) { try { mesas=mesaRepository.findAll().stream().sorted(Comparator.comparing(Mesa::getNumero)).toList(); dibujarMesas(); } catch(Exception e) { } } });
         try { cargarCatalogos(); } catch (Exception e) { error(e); }
         volverCategorias();
         refrescarVista();
@@ -272,11 +274,13 @@ public class MozoController {
 
     private void dibujarMesas() {
         panelMesas.getChildren().clear();
+        var agenda = reservas.activas();
         for (Mesa m : mesas) {
-            Button b = new Button(m.getNumero() + "\n" + m.getEstado());
+            String estado = reservas.estadoMesa(m, agenda);
+            Button b = new Button(m.getNumero() + "\n" + estado);
             b.setPrefSize(96, 86); b.setWrapText(true);
             boolean seleccion = mesaSeleccionada != null && m.getId().equals(mesaSeleccionada.getId());
-            String color = "OCUPADA".equals(m.getEstado()) ? "#0284c7" : "RESERVADA".equals(m.getEstado()) ? "#7c3aed" : "#d97706";
+            String color = estado.startsWith("OCUPADA") ? "#0284c7" : estado.startsWith("RESERVADA") ? "#7c3aed" : estado.equals("RESERVA PRÓXIMA") ? "#d97706" : "#16803c";
             b.setStyle("-fx-background-color: " + color + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 12; -fx-border-radius: 12; -fx-border-width: 3; -fx-border-color: " + (seleccion ? "#0f172a" : "transparent") + ";");
             b.setOnAction(e -> seleccionarMesa(m));
             panelMesas.getChildren().add(b);
@@ -289,6 +293,8 @@ public class MozoController {
             aviso("Envía o descarta los nuevos productos antes de cambiar de mesa."); return;
         }
         try {
+            String estado = reservas.estadoMesa(mesa, reservas.activas());
+            if ("RESERVADA".equals(estado)) { aviso("Mesa reservada: el administrador debe registrar la llegada."); return; }
             if (!pedidoRepository.findByMesaIdAndEstado(mesa.getId(), "TERMINADO").isEmpty()) {
                 aviso("Esta mesa ya está en caja. Primero debe cobrarse."); return;
             }

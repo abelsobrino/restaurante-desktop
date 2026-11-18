@@ -121,12 +121,14 @@ public class CajaController {
             cargarPedidosPorMesa(lstMesas.getSelectionModel().getSelectedItem());
     }
 
+    @Autowired private pe.edu.utp.restaurante.service.ReservaService reservas;
     private void dibujarMesas() {
+        var agenda = reservas.activas();
         panelMesas.getChildren().clear();
         var pendientes = pedidoRepository.findByEstado("TERMINADO");
         for (Mesa mesa : mesas.stream().sorted(java.util.Comparator.comparing(Mesa::getNumero)).toList()) {
             long cantidad = pendientes.stream().filter(p -> java.util.Objects.equals(p.getMesaId(), mesa.getId())).count();
-            Button boton = new Button("Mesa " + mesa.getNumero() + "\n" + (cantidad > 0 ? cantidad + " por cobrar" : "Sin cobros"));
+            Button boton = new Button("Mesa " + mesa.getNumero() + "\n" + (cantidad > 0 ? cantidad + " por cobrar" : reservas.estadoMesa(mesa, agenda)));
             boton.setPrefSize(112, 88);
             boton.setStyle("-fx-background-color: " + (cantidad > 0 ? "#d97706" : "#475569") + "; -fx-text-fill: white; -fx-background-radius: 12; -fx-font-weight: bold; -fx-cursor: hand;");
             boton.setOnAction(e -> { lstMesas.getSelectionModel().select(mesa); cargarPedidosPorMesa(mesa); });

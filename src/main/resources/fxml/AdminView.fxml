@@ -10,6 +10,7 @@
         <HBox alignment="CENTER_LEFT" spacing="20" style="-fx-background-color: #0d47a1; -fx-padding: 10px 20px;">
             <Text fill="white" style="-fx-font-size: 16px; -fx-font-weight: bold;" text="RESTAURANTE LA FONDA - ADMINISTRADOR"/>
             <Region HBox.hgrow="ALWAYS"/>
+            <Label fx:id="lblReservasHoy" style="-fx-text-fill: white; -fx-font-weight: bold;" text="Reservas"/>
             <Button onAction="#cerrarSesion" style="-fx-background-color: #b71c1c; -fx-text-fill: white; -fx-font-weight: bold;" text="CERRAR SESION"/>
         </HBox>
     </top>
@@ -82,6 +83,7 @@
                 </SplitPane>
             </Tab>
 
+            <Tab fx:id="tabReservas" text="RESERVAS" closable="false"/>
             <Tab text="MESAS" closable="false">
                 <SplitPane dividerPositions="0.6" style="-fx-background-color: transparent;">
                     <VBox spacing="10" style="-fx-padding: 10px;">
